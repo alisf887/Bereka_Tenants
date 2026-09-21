@@ -172,3 +172,16 @@ footer{margin-top:24px;color:var(--ink-soft);font-size:12.5px}
   th,td{padding:10px 8px;font-size:14px}
   table{min-width:820px}
 }
+
+/* ---------- LOGIN PAGE ---------- */
+.loginwrap{display:flex;min-height:70vh;align-items:center;justify-content:center;padding:20px}
+.loginbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:28px;width:min(360px,90vw)}
+.loginbox h1{font-size:20px;margin:0 0 4px}
+.loginbox p.sub{margin:0 0 18px;color:var(--ink-soft);font-size:13.5px}
+.loginbox label{display:block;font-size:13px;color:var(--ink-soft);margin:12px 0 4px}
+.loginbox input{width:100%;display:block}
+.loginbox .btn-primary{width:100%;margin-top:18px;padding:11px;font-size:14.5px;border-radius:9px}
+.loginbox .forgot{display:block;text-align:left;margin-top:6px;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;
+  text-decoration-color:var(--line);background:none;border:none;padding:0}
+.loginbox .forgot:hover{color:var(--accent-lo);text-decoration-color:var(--accent)}
