@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { MONTHS, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
+import ReceiptModal from "./pdf/ReceiptModal";
 
 function money(n) {
   return n == null ? "—" : Number(n).toLocaleString("en-US") + " ብር";
@@ -70,6 +71,7 @@ function Login({ onDone }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -80,20 +82,36 @@ function Login({ onDone }) {
     else onDone();
   }
 
+  async function forgotPassword() {
+    if (!email) { setError("መጀመሪያ ኢሜይልዎን ያስገቡ።"); return; }
+    setBusy(true); setError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    setBusy(false);
+    if (error) setError(error.message);
+    else setResetSent(true);
+  }
+
   return (
     <div className="loginwrap">
       <form className="loginbox" onSubmit={submit} noValidate>
+        <div className="login-mark" aria-hidden="true">🏢</div>
         <h1>በረካ ህንፃ</h1>
         <p className="sub">የተከራዮች መዝገብ ለማስተዳደር ግባ</p>
         <label htmlFor="email">ኢሜይል</label>
         <input id="email" type="email" autoComplete="username" required autoFocus
-          value={email} onChange={(e) => setEmail(e.target.value)} />
+          value={email} onChange={(e) => { setEmail(e.target.value); setResetSent(false); }} />
         <label htmlFor="password">የይለፍ ቃል</label>
         <input id="password" type="password" autoComplete="current-password" required
           value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? "..." : "ግባ"}
         </button>
+        <button type="button" className="forgot" disabled={busy} onClick={forgotPassword}>
+          የይለፍ ቃል ረሳህ?
+        </button>
+        {resetSent && (
+          <div className="hint" role="status">የመልሶ ማስጀመሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል።</div>
+        )}
         {error && <div className="err" role="alert">{error}</div>}
       </form>
     </div>
@@ -103,7 +121,7 @@ function Login({ onDone }) {
 // ----------------------------------------------------------------------
 // Drawer: view (everyone) / edit (owner) / add new tenant (owner)
 // ----------------------------------------------------------------------
-function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, onFlash }) {
+function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, onFlash, onPaid }) {
   const isAdd = mode === "add";
   const t = tenant;
   const [form, setForm] = useState(() =>
@@ -157,6 +175,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     else {
       onFlash(`${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, t.id);
       onSaved();
+      onPaid(t);
     }
   }
 
@@ -273,7 +292,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             </div>
           </div>
 
-          <div className="pay" style={{ marginTop: 12, gap: 8 }}>
+          <div className="pay drawer-actions">
             <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
             <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
             {t.payments.length > 0 && (
@@ -291,18 +310,18 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       )}
 
       <div className="hist">
-        <b>የክፍያ ታሪክ</b>
+        <h3>የክፍያ ታሪክ</h3>
         {t.payments.length === 0 ? (
           <p className="muted small">እስካሁን የተመዘገበ ክፍያ የለም።</p>
         ) : (
           <ul>
             {[...t.payments].reverse().map((p) => (
               <li key={p.id}>
-                <b>{p.cycle} ወር</b> · {money(p.amount)}
-                <br />
-                <span className="muted small">
+                <span><b>{p.cycle} ወር</b> · {money(p.amount)}</span>
+                <span className="muted small" style={{ textAlign: "right" }}>
                   {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d })} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d })}
-                  {" · የተመዘገበው "}{new Date(p.recorded_at).toLocaleDateString()}
+                  <br />
+                  {"የተመዘገበው "}{new Date(p.recorded_at).toLocaleDateString()}
                 </span>
               </li>
             ))}
@@ -328,6 +347,7 @@ export default function App() {
   const [filters, setFilters] = useState({ floor: "all", status: "all", q: "" });
   const [drawer, setDrawer] = useState(null);
   const [toast, setToast] = useState(null);
+  const [receipt, setReceipt] = useState(null); // { tenant, payment } — drives the print-preview modal
   const [theme, setTheme] = useState("auto");
   const toastTimer = useRef(null);
 
@@ -343,6 +363,34 @@ export default function App() {
     setToast({ msg, undoable, tenantId });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 6000);
+  }
+
+  // Called right after a payment is successfully recorded (from PayButton
+  // or from Drawer's own "3/6 ወር ተከፈለ" buttons). Pulls the real row that
+  // record_payment() just inserted — no separate "receipt" table or PDF
+  // column needed, this reads the same payments table the history list
+  // already uses. The receipt number is derived from that row's own id,
+  // so it's stable and traceable back to the exact payment without
+  // storing anything new.
+  async function openReceipt(tenant) {
+    const { data: latest, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .single();
+    if (error || !latest) {
+      flash("ደረሰኝ ማዘጋጀት አልተቻለም።", false);
+      return;
+    }
+    setReceipt({
+      tenant,
+      payment: {
+        total: latest.amount,
+        receipt_no: "RCT-" + latest.id.slice(0, 8).toUpperCase(),
+      },
+    });
   }
 
   const floors = useMemo(() => {
@@ -422,7 +470,7 @@ export default function App() {
           </div>
           <div className="toolbtns">
             <button className="btn" onClick={exportCsv}>CSV አውርድ</button>
-            <button className="btn" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>ገጽታ</button>
+            <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>ገጽታ</button>
             {owner
               ? <button className="btn" onClick={() => supabase.auth.signOut()}>ውጣ</button>
               : <button className="btn" onClick={() => setDrawer({ mode: "login" })}>የባለቤት መግቢያ</button>}
@@ -436,7 +484,7 @@ export default function App() {
           <div className="stat"><b>{stats.late}</b><span>ያልተከፈለ</span></div>
           <div className="stat"><b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span></div>
           <div className="stat"><b>{stats.paid}</b><span>የተከፈለ</span></div>
-          <div className="stat"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
+          <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
 
         <div className="controls">
@@ -493,8 +541,8 @@ export default function App() {
                     {owner && (
                       <td>
                         <div className="pay">
-                          <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} />
-                          <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} />
+                          <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
+                          <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
                         </div>
                       </td>
                     )}
@@ -515,17 +563,17 @@ export default function App() {
         <>
           <div className="scrim open" onClick={() => setDrawer(null)} />
           <aside className="drawer open" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
-            <button className="btn" style={{ float: "left" }} aria-label="ዝጋ" onClick={() => setDrawer(null)}>ዝጋ</button>
+            <button className="btn close" aria-label="ዝጋ" onClick={() => setDrawer(null)}>✕</button>
             <div>
               {drawer.mode === "login" && <Login onDone={() => setDrawer(null)} />}
               {drawer.mode === "add" && (
                 <Drawer mode="add" owner={owner} floors={floors}
                   defaultFloor={filters.floor !== "all" ? filters.floor : floors[1]}
-                  onClose={() => setDrawer(null)} onSaved={reload} onFlash={flash} />
+                  onClose={() => setDrawer(null)} onSaved={reload} onFlash={flash} onPaid={openReceipt} />
               )}
               {drawer.mode === "view" && drawerTenant && (
                 <Drawer mode="view" tenant={drawerTenant} owner={owner} floors={floors}
-                  onClose={() => setDrawer(null)} onSaved={reload} onFlash={flash} />
+                  onClose={() => setDrawer(null)} onSaved={reload} onFlash={flash} onPaid={openReceipt} />
               )}
             </div>
           </aside>
@@ -538,11 +586,15 @@ export default function App() {
           {toast.undoable && <button onClick={undoToast}>መልስ</button>}
         </div>
       )}
+
+      {receipt && (
+        <ReceiptModal tenant={receipt.tenant} payment={receipt.payment} onClose={() => setReceipt(null)} />
+      )}
     </div>
   );
 }
 
-function PayButton({ tenant, cycle, onFlash, onSaved }) {
+function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
   const [busy, setBusy] = useState(false);
   const amt = cycle === 3 ? tenant.amt3 : tenant.amt6;
   async function click() {
@@ -553,6 +605,7 @@ function PayButton({ tenant, cycle, onFlash, onSaved }) {
     else {
       onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, tenant.id);
       onSaved();
+      onPaid(tenant);
     }
   }
   return (

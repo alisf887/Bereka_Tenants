@@ -1,59 +1,77 @@
 import { birrToWords } from "./birrWords";
+import { generateReceipt } from "./generateReceipt";
 
-export default function Receipt({ tenant, payment }) {
+export default function Receipt({ tenant = {}, payment = {} }) {
+  const total = Number(payment.total) || 0;
+  const net = total / 1.15;
+  const vat = total - net;
 
-const total = Number(payment.total || 0);
+  return (
+    <div style={{ padding: "20px" }}>
+      {/* Print-only CSS: when printing, show ONLY #receipt, hide everything
+          else on the page (the modal chrome, the buttons below). Scoped to
+          this component so it works wherever Receipt is rendered. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #receipt, #receipt * { visibility: visible; }
+          #receipt { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
 
-const net = total / 1.15;
-const vat = total - net;
+      <div className="no-print" style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <button
+          onClick={generateReceipt}
+          style={{ padding: "10px 16px", cursor: "pointer" }}
+        >
+          Download PDF Receipt
+        </button>
+        <button
+          onClick={() => window.print()}
+          style={{ padding: "10px 16px", cursor: "pointer" }}
+        >
+          Print
+        </button>
+      </div>
 
-return(
+      <div id="receipt" style={{ background: "white", padding: "30px", color: "#111" }}>
+        <h1>በረካ ህንፃ</h1>
+        <h2>BEREKA BUILDING</h2>
 
-<div id="receipt" style={{background:"white",padding:"30px",color:"#111"}}>
+        <hr />
 
-<h1>በረካ ህንፃ</h1>
-<h2>BEREKA BUILDING</h2>
+        <h3>የኪራይ ክፍያ ደረሰኝ</h3>
 
-<hr/>
+        <p>Receipt No: {payment.receipt_no || "N/A"}</p>
 
-<h3>የኪራይ ክፍያ ደረሰኝ</h3>
+        <table>
+          <tbody>
+            <tr><td>ስም</td><td>{tenant.name || "N/A"}</td></tr>
+            <tr><td>ክፍል</td><td>{tenant.room || "N/A"}</td></tr>
+            <tr><td>ወለል</td><td>{tenant.floor || "N/A"}</td></tr>
+          </tbody>
+        </table>
 
-<p>Receipt No: {payment.receipt_no}</p>
+        <hr />
 
-<table>
-<tbody>
+        <h3>Payment</h3>
 
-<tr><td>ስም</td><td>{tenant.name}</td></tr>
-<tr><td>ክፍል</td><td>{tenant.room}</td></tr>
-<tr><td>ወለል</td><td>{tenant.floor}</td></tr>
+        <p>Total: {total.toLocaleString()} Birr</p>
+        <p>Net: {net.toFixed(2)} Birr</p>
+        <p>VAT: {vat.toFixed(2)} Birr</p>
 
-</tbody>
-</table>
+        <hr />
 
-<hr/>
+        <h3>In Words</h3>
 
-<h3>Payment</h3>
+        <p>{birrToWords(total)}</p>
 
-<p>Total: {total.toLocaleString()} Birr</p>
-<p>Net: {net.toFixed(2)} Birr</p>
-<p>VAT: {vat.toFixed(2)} Birr</p>
-
-<hr/>
-
-<h3>In Words</h3>
-
-<p>{birrToWords(total)}</p>
-
-<div style={{marginTop:"80px"}}>
-
-<div>Receiver</div>
-
-<strong>Ali Seid</strong>
-
-</div>
-
-</div>
-
-)
-
+        <div style={{ marginTop: "80px" }}>
+          <div>Receiver</div>
+          <strong>Ali Seid</strong>
+        </div>
+      </div>
+    </div>
+  );
 }

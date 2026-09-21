@@ -123,9 +123,13 @@ tr.row:hover td{background:var(--panel-2)}
   .drawer{animation:slide-in .2s ease}
   @keyframes slide-in{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 }
-.drawer h2{margin:0 0 2px;font-size:19px}
-.drawer .close{position:absolute;top:16px;right:16px}
+.drawer h2{margin:0 34px 2px 0;font-size:19px}
+.drawer .close{
+  position:absolute;top:16px;right:16px;width:32px;height:32px;padding:0;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:15px;line-height:1;
+}
 .field{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:center;margin:9px 0}
+.field label{color:var(--ink-soft);font-size:13px}
 .field span:first-child{color:var(--ink-soft);font-size:13px}
 .hist{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
 .hist h3{font-size:13px;color:var(--ink-soft);margin:0 0 8px;font-weight:700}
@@ -174,14 +178,48 @@ footer{margin-top:24px;color:var(--ink-soft);font-size:12.5px}
 }
 
 /* ---------- LOGIN PAGE ---------- */
-.loginwrap{display:flex;min-height:70vh;align-items:center;justify-content:center;padding:20px}
-.loginbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:var(--shadow);padding:28px;width:min(360px,90vw)}
-.loginbox h1{font-size:20px;margin:0 0 4px}
-.loginbox p.sub{margin:0 0 18px;color:var(--ink-soft);font-size:13.5px}
-.loginbox label{display:block;font-size:13px;color:var(--ink-soft);margin:12px 0 4px}
-.loginbox input{width:100%;display:block}
-.loginbox .btn-primary{width:100%;margin-top:18px;padding:11px;font-size:14.5px;border-radius:9px}
-.loginbox .forgot{display:block;text-align:left;margin-top:6px;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;
-  text-decoration-color:var(--line);background:none;border:none;padding:0}
+.loginwrap{
+  display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;
+  background:
+    radial-gradient(680px circle at 15% 10%, var(--accent-soft), transparent 60%),
+    radial-gradient(520px circle at 85% 90%, var(--accent-soft), transparent 55%),
+    var(--bg);
+}
+.loginbox{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 1px 2px rgba(18,32,29,.08), 0 24px 48px -12px rgba(14,74,59,.22);
+  padding:32px 30px;width:min(380px,92vw);
+}
+@media (prefers-reduced-motion:no-preference){
+  .loginbox{animation:login-in .32s cubic-bezier(.22,1,.36,1)}
+  @keyframes login-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+}
+.login-mark{
+  width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;
+  border-radius:12px;background:linear-gradient(160deg,var(--accent-hi),var(--accent-lo));
+  box-shadow:var(--shadow-btn);margin-bottom:14px;
+}
+.loginbox h1{font-size:21px;margin:0 0 4px;letter-spacing:-.01em}
+.loginbox p.sub{margin:0 0 20px;color:var(--ink-soft);font-size:13.5px}
+.loginbox label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px}
+.loginbox input{width:100%;display:block;padding:10px 12px}
+.loginbox input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.loginbox .btn-primary{width:100%;margin-top:20px;padding:12px;font-size:14.5px;border-radius:10px}
+.loginbox .forgot{display:block;text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);
+  text-decoration:underline;text-decoration-color:var(--line);background:none;border:none;padding:4px;width:100%}
 .loginbox .forgot:hover{color:var(--accent-lo);text-decoration-color:var(--accent)}
+.loginbox .forgot:disabled{opacity:.5;cursor:not-allowed}
+.hint{background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:12px}
+/* ---------- RECEIPT PRINT-PREVIEW MODAL ---------- */
+.receipt-modal-wrap{
+  position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+  padding:24px;overflow-y:auto;
+}
+.receipt-modal{
+  position:relative;background:var(--panel);border-radius:12px;box-shadow:var(--shadow);
+  max-width:640px;width:100%;max-height:90vh;overflow-y:auto;
+}
+@media print{
+  .receipt-modal-wrap{position:static;padding:0;overflow:visible}
+  .receipt-modal{max-width:none;max-height:none;box-shadow:none;border-radius:0}
+}
