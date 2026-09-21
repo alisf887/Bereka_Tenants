@@ -1,0 +1,16 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# env files — never commit real Supabase keys
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.local
