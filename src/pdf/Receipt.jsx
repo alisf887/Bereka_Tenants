@@ -7,7 +7,7 @@ export default function Receipt({ tenant = {}, payment = {} }) {
   const vat = total - net;
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="receipt-outer">
       {/* Print-only CSS: when printing, show ONLY #receipt, hide everything
           else on the page (the modal chrome, the buttons below). Scoped to
           this component so it works wherever Receipt is rendered. */}
@@ -20,22 +20,12 @@ export default function Receipt({ tenant = {}, payment = {} }) {
         }
       `}</style>
 
-      <div className="no-print" style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-        <button
-          onClick={generateReceipt}
-          style={{ padding: "10px 16px", cursor: "pointer" }}
-        >
-          Download PDF Receipt
-        </button>
-        <button
-          onClick={() => window.print()}
-          style={{ padding: "10px 16px", cursor: "pointer" }}
-        >
-          Print
-        </button>
+      <div className="no-print receipt-actions">
+        <button onClick={generateReceipt}>Download PDF Receipt</button>
+        <button onClick={() => window.print()}>Print</button>
       </div>
 
-      <div id="receipt" style={{ background: "white", padding: "30px", color: "#111" }}>
+      <div id="receipt" className="receipt-paper">
         <h1>በረካ ህንፃ</h1>
         <h2>BEREKA BUILDING</h2>
 
@@ -67,7 +57,7 @@ export default function Receipt({ tenant = {}, payment = {} }) {
 
         <p>{birrToWords(total)}</p>
 
-        <div style={{ marginTop: "80px" }}>
+        <div className="receipt-receiver">
           <div>Receiver</div>
           <strong>Ali Seid</strong>
         </div>

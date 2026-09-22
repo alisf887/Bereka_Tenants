@@ -223,3 +223,34 @@ footer{margin-top:24px;color:var(--ink-soft);font-size:12.5px}
   .receipt-modal-wrap{position:static;padding:0;overflow:visible}
   .receipt-modal{max-width:none;max-height:none;box-shadow:none;border-radius:0}
 }
+
+/* ---------- RECEIPT CONTENT: responsive, since it used to be fixed-px inline styles ---------- */
+.receipt-outer{padding:20px}
+.receipt-actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.receipt-actions button{
+  padding:10px 16px;cursor:pointer;flex:1 1 auto;min-width:140px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-weight:600;
+}
+.receipt-actions button:hover{border-color:var(--accent)}
+#receipt.receipt-paper{
+  background:#fff;color:#111;padding:30px;max-width:100%;overflow-wrap:break-word;
+}
+#receipt table{width:100%;border-collapse:collapse}
+#receipt td{padding:4px 8px 4px 0;vertical-align:top}
+.receipt-receiver{margin-top:80px}
+@media (max-width:520px){
+  .receipt-modal-wrap{padding:10px}
+  .receipt-modal{border-radius:10px;max-height:95vh}
+  .receipt-outer{padding:14px}
+  .receipt-actions button{min-width:0;font-size:13px;padding:10px 8px}
+  #receipt.receipt-paper{padding:16px}
+  #receipt h1{font-size:19px;margin-bottom:2px}
+  #receipt h2{font-size:14px;margin-top:0}
+  #receipt h3{font-size:15px}
+  #receipt p{font-size:14px}
+  .receipt-receiver{margin-top:48px}
+}
+@media print{
+  .receipt-outer{padding:0}
+  #receipt.receipt-paper{padding:0}
+}
