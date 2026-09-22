@@ -11,10 +11,10 @@ export default function ReceiptModal({ tenant, payment, onClose }) {
   return (
     <>
       <div className="scrim no-print" onClick={onClose} />
-      <div className="receipt-modal-wrap no-print">
+      <div className="receipt-modal-wrap">
         <div className="receipt-modal">
           <button
-            className="btn close"
+            className="btn close no-print"
             aria-label="ዝጋ"
             onClick={onClose}
             style={{ position: "absolute", top: 10, right: 10 }}

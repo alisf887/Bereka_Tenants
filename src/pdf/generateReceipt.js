@@ -5,6 +5,8 @@ export async function generateReceipt(){
 
 const receipt=document.getElementById("receipt");
 
+await document.fonts.ready;
+
 const canvas=await html2canvas(receipt,{scale:2});
 
 const img=canvas.toDataURL("image/png");
