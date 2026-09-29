@@ -1,3 +1,4 @@
+import './styles.css'; // Import this at the top of your main entry component
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { MONTHS, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
@@ -31,20 +32,34 @@ function useTenants() {
     }
     const byTenant = {};
     for (const p of pRows) (byTenant[p.tenant_id] ??= []).push(p);
-    const merged = tRows.map((t) => ({
-      id: t.id,
-      name: t.name,
-      room: t.room,
-      floor: t.floor,
-      phone: t.phone,
-      contractStart: t.contract_start,
-      contractEnd: t.contract_end,
-      payStartRaw: t.pay_start_raw,
-      amt3: t.amt3 == null ? null : Number(t.amt3),
-      amt6: t.amt6 == null ? null : Number(t.amt6),
-      payEnd: t.pay_end_y == null ? null : { y: t.pay_end_y, m: t.pay_end_m, d: t.pay_end_d },
-      payments: byTenant[t.id] || [],
-    }));
+    
+    const merged = tRows.map((t) => {
+      let floor = t.floor;
+      let room = t.room;
+
+      // Exact placement overrides for specific tenants
+      if (t.name?.includes("ቂማ ኤጀንሲ")) {
+        floor = "3ኛ ፎቅ"; // or "3F" depending on your naming convention
+      } else if (t.name?.includes("ኤም ኤ ይትባረክ")) {
+        floor = "ስቶር"; // or store designation
+      }
+
+      return {
+        id: t.id,
+        name: t.name,
+        room: room,
+        floor: floor,
+        phone: t.phone,
+        status: t.status || "active",
+        contractStart: t.contract_start,
+        contractEnd: t.contract_end,
+        payStartRaw: t.pay_start_raw,
+        amt3: t.amt3 == null ? null : Number(t.amt3),
+        amt6: t.amt6 == null ? null : Number(t.amt6),
+        payEnd: t.pay_end_y == null ? null : { y: t.pay_end_y, m: t.pay_end_m, d: t.pay_end_d },
+        payments: byTenant[t.id] || [],
+      };
+    }); 
     setTenants(merged);
     setError(null);
     setLoading(false);
@@ -64,7 +79,7 @@ function useTenants() {
 }
 
 // ----------------------------------------------------------------------
-// Login
+// Login Component
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
   const [email, setEmail] = useState("");
@@ -104,7 +119,7 @@ function Login({ onDone }) {
         <input id="password" type="password" autoComplete="current-password" required
           value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "..." : "ግባ"}
+          {busy ? "..." : "ግባ"} 
         </button>
         <button type="button" className="forgot" disabled={busy} onClick={forgotPassword}>
           የይለፍ ቃል ረሳህ?
@@ -119,7 +134,7 @@ function Login({ onDone }) {
 }
 
 // ----------------------------------------------------------------------
-// Drawer: view (everyone) / edit (owner) / add new tenant (owner)
+// Drawer Component
 // ----------------------------------------------------------------------
 function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, onFlash, onPaid }) {
   const isAdd = mode === "add";
@@ -134,7 +149,10 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           y: t.payEnd?.y ?? todayEth().y, m: t.payEnd?.m ?? todayEth().m, d: t.payEnd?.d ?? todayEth().d }
   );
   const [busy, setBusy] = useState(false);
+  const [showMoveOutModal, setShowMoveOutModal] = useState(false);
+  const [checkoutDate, setCheckoutDate] = useState("");
   const firstFieldRef = useRef(null);
+  
   useEffect(() => { firstFieldRef.current?.focus(); }, []);
 
   function set(key, value) { setForm((f) => ({ ...f, [key]: value })); }
@@ -153,6 +171,24 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     setBusy(false);
     if (error) onFlash(errText(error), false);
     else { onFlash("መረጃው ተስተካክሏል።", false); onSaved(); }
+  }
+
+  async function handleMoveOut() {
+    setBusy(true);
+    // Marks tenant as moved out, vacates room status safely without deleting row/payment cascade history
+    const { error } = await supabase.from("tenants").update({
+      status: "moved_out",
+      room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ"
+    }).eq("id", t.id);
+    setBusy(false);
+    setShowMoveOutModal(false);
+    if (error) {
+      onFlash(errText(error), false);
+    } else {
+      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። (ክፍሉ ነጻ ሆኗል)`, false);
+      onSaved();
+      onClose();
+    }
   }
 
   async function saveDate() {
@@ -199,6 +235,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       amt3: form.amt3 === "" ? null : Number(form.amt3),
       amt6: form.amt6 === "" ? null : Number(form.amt6),
       pay_end_y: Number(form.y), pay_end_m: Number(form.m), pay_end_d: d,
+      status: "active",
     };
     const { error } = await supabase.from("tenants").insert([payload]);
     setBusy(false);
@@ -207,7 +244,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   }
 
   async function deleteTenant() {
-    if (!window.confirm(`${t.name} ከመዝገብ ይጥፋ?`)) return;
+    if (!window.confirm(`${t.name} ከመዝገብ ሙሉ በሙሉ ይጥፋ?`)) return;
     setBusy(true);
     const { error } = await supabase.from("tenants").delete().eq("id", t.id);
     setBusy(false);
@@ -229,7 +266,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
         <div className="field"><label htmlFor="nFloor">ወለል *</label>
           <input id="nFloor" list="floorList" value={form.floor} onChange={(e) => set("floor", e.target.value)} /></div>
         <datalist id="floorList">{floorOptions.map((f) => <option key={f} value={f} />)}</datalist>
-        <div className="field"><label htmlFor="nRoom">ክፍል ቁጥር</label>
+        <div className="field"><label htmlFor="nRoom">ክፍል ቁጥር / ሱቅ</label>
           <input id="nRoom" value={form.room} onChange={(e) => set("room", e.target.value)} /></div>
         <div className="field"><label htmlFor="nPhone">ስልክ</label>
           <input id="nPhone" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
@@ -258,7 +295,10 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     <>
       <h2>{t.name}</h2>
       <div className="sub">{t.room || "—"} · {t.floor} · {t.phone ? "0" + t.phone : "ስልክ የለም"}</div>
-      <p><span className={`pill ${s.cls}`}>{s.label}</span></p>
+      <p>
+        <span className={`pill ${s.cls}`}>{s.label}</span>
+        {t.status === "moved_out" && <span className="pill" style={{ background: "#fee2e2", color: "#991b1b", marginLeft: 6 }}>ወጥቷል (Moved Out)</span>}
+      </p>
 
       {owner ? (
         <>
@@ -292,9 +332,14 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             </div>
           </div>
 
-          <div className="pay drawer-actions">
+          <div className="pay drawer-actions" style={{ marginTop: 12 }}>
             <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
             <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
+            {t.status !== "moved_out" && (
+              <button className="btn" style={{ background: "#ef4444", color: "#fff", border: "none" }} disabled={busy} onClick={() => setShowMoveOutModal(true)}>
+                ወጥቷል (Move Out)
+              </button>
+            )}
             {t.payments.length > 0 && (
               <button className="btn" disabled={busy} onClick={revertLast}>የመጨረሻውን ክፍያ ሰርዝ</button>
             )}
@@ -307,6 +352,21 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           <div className="field"><span className="muted">ክፍያ (3 ወር)</span><span className="money">{money(t.amt3)}</span></div>
           <div className="field"><span className="muted">ክፍያ (6 ወር)</span><span className="money">{money(t.amt6)}</span></div>
         </>
+      )}
+
+      {/* Move Out Confirmation Sub-Modal */}
+      {showMoveOutModal && (
+        <div style={{ background: "var(--bg-secondary)", padding: 12, borderRadius: 8, marginTop: 12, border: "1px solid var(--border)" }}>
+          <h4 style={{ margin: "0 0 8px 0", color: "var(--late)" }}>ተከራይ ውል አቋርጦ መውጣቱን ያረጋግጡ</h4>
+          <div className="field">
+            <label>የወጡበት ቀን (የኢትዮጵያ አቆጣጠር)</label>
+            <input placeholder="ለምሳሌ፦ መጋቢት 12/2018" value={checkoutDate} onChange={(e) => setCheckoutDate(e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btn btn-primary" disabled={busy} onClick={handleMoveOut}>አዎ፣ ውል ጨርሶ ወጥቷል</button>
+            <button className="btn" onClick={() => setShowMoveOutModal(false)}>ይቅር</button>
+          </div>
+        </div>
       )}
 
       <div className="hist">
@@ -331,7 +391,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 
       {owner && (
         <button className="btn" style={{ marginTop: 16, color: "var(--late)" }} disabled={busy} onClick={deleteTenant}>
-          ተከራይ አጥፋ
+          ተከራይ ከመዝገብ ሰርዝ (Delete)
         </button>
       )}
     </>
@@ -339,15 +399,15 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 }
 
 // ----------------------------------------------------------------------
-// Main app
+// Main App Component
 // ----------------------------------------------------------------------
 export default function App() {
   const [session, setSession] = useState(undefined);
   const { tenants, loading, error, reload } = useTenants();
-  const [filters, setFilters] = useState({ floor: "all", status: "all", q: "" });
+  const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
   const [drawer, setDrawer] = useState(null);
   const [toast, setToast] = useState(null);
-  const [receipt, setReceipt] = useState(null); // { tenant, payment } — drives the print-preview modal
+  const [receipt, setReceipt] = useState(null);
   const [theme, setTheme] = useState("auto");
   const toastTimer = useRef(null);
 
@@ -357,6 +417,13 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Apply the theme on <html> so body/background and all panels switch together
+  useEffect(() => {
+    const el = document.documentElement;
+    if (theme === "auto") el.removeAttribute("data-theme");
+    else el.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const owner = !!session;
 
   function flash(msg, undoable, tenantId) {
@@ -365,13 +432,6 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 6000);
   }
 
-  // Called right after a payment is successfully recorded (from PayButton
-  // or from Drawer's own "3/6 ወር ተከፈለ" buttons). Pulls the real row that
-  // record_payment() just inserted — no separate "receipt" table or PDF
-  // column needed, this reads the same payments table the history list
-  // already uses. The receipt number is derived from that row's own id,
-  // so it's stable and traceable back to the exact payment without
-  // storing anything new.
   async function openReceipt(tenant) {
     const { data: latest, error } = await supabase
       .from("payments")
@@ -398,9 +458,17 @@ export default function App() {
     return ["all", ...[...set].sort()];
   }, [tenants]);
 
+  // Separate active vs archive (moved_out) view filtering
+  const scopedByViewMode = useMemo(() => {
+    if (filters.viewMode === "archive") {
+      return tenants.filter((t) => t.status === "moved_out");
+    }
+    return tenants.filter((t) => t.status !== "moved_out");
+  }, [tenants, filters.viewMode]);
+
   const inFloorScope = useMemo(
-    () => tenants.filter((t) => filters.floor === "all" || t.floor === filters.floor),
-    [tenants, filters.floor]
+    () => scopedByViewMode.filter((t) => filters.floor === "all" || t.floor === filters.floor),
+    [scopedByViewMode, filters.floor]
   );
 
   const visible = useMemo(() => {
@@ -456,69 +524,105 @@ export default function App() {
   if (session === undefined) return null;
 
   return (
-    <div data-theme={theme === "auto" ? undefined : theme}>
+    <div>
       <div className="wrap">
-        <header className="top">
+        {/* Enterprise SaaS Header & Controls */}
+        <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
           <div>
-            <h1>በረካ ህንፃ — የተከራዮች መዝገብ</h1>
-            <div className="sub">
-              ዛሬ <b>{fmtEth(today)} ዓ.ም</b> · ክፍያ ሲከፈል ቀኑ በራሱ 3 ወር ወይም 6 ወር ወደፊት ይራዘማል።
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: "1.5rem" }}>🏢</span>
+              <h1>በረካ ህንፃ — የተከራዮች መዝገብ (Enterprise SaaS)</h1>
+            </div>
+            <div className="sub" style={{ marginTop: 4 }}>
+              ዛሬ <b>{fmtEth(today)} ዓ.ም</b> · አጠቃላይ የህንፃ ንብረት እና ተከራዮች አስተዳደር።
               <span className={`pill ${owner ? "ok" : "none"}`} style={{ marginInlineStart: 6 }}>
-                {owner ? "የባለቤት ሁነታ" : "የተመልካች ሁነታ (ለውጥ ማድረግ አይቻልም)"}
+                {owner ? "የባለቤት ሁነታ" : "የተመልካች ሁነታ"}
               </span>
             </div>
           </div>
           <div className="toolbtns">
-            <button className="btn" onClick={exportCsv}>CSV አውርድ</button>
-            <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>ገጽታ</button>
+            <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
+            <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
             {owner
-              ? <button className="btn" onClick={() => supabase.auth.signOut()}>ውጣ</button>
-              : <button className="btn" onClick={() => setDrawer({ mode: "login" })}>የባለቤት መግቢያ</button>}
+              ? <button className="btn" onClick={() => supabase.auth.signOut()}>🚪 ውጣ</button>
+              : <button className="btn btn-primary" onClick={() => setDrawer({ mode: "login" })}>🔐 የባለቤት መግቢያ</button>}
           </div>
         </header>
 
         {error && <div className="err" role="alert">መረጃ መጫን አልተቻለም፦ {errText(error)}</div>}
 
         <section className="stats">
-          <div className="stat"><b>{stats.count}</b><span>ተከራዮች</span></div>
+          <div className="stat"><b>{stats.count}</b><span>{filters.viewMode === "archive" ? "የቀድሞ ተከራዮች" : "ንቁ ተከራዮች"}</span></div>
           <div className="stat"><b>{stats.late}</b><span>ያልተከፈለ</span></div>
           <div className="stat"><b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span></div>
           <div className="stat"><b>{stats.paid}</b><span>የተከፈለ</span></div>
           <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
 
-        <div className="controls">
-          <div className="tabs">
-            {floors.map((f) => (
-              <button key={f} className="tab" aria-pressed={filters.floor === f}
-                onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
-                {f === "all" ? "ሁሉም ወለል" : f}
+        {/* Enterprise Segmented Controls & Filters */}
+        <div className="controls" style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel)", padding: 16, borderRadius: 12, border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            {/* View Mode Tabs (Active vs Archive) */}
+            <div className="tabs" style={{ display: "flex", gap: 4 }}>
+              <button className="tab" aria-pressed={filters.viewMode === "active"}
+                onClick={() => setFilters((s) => ({ ...s, viewMode: "active" }))}
+                style={{ fontWeight: filters.viewMode === "active" ? "bold" : "normal" }}>
+                🏢 ንቁ ተከራዮች (Active)
               </button>
-            ))}
-          </div>
-          {owner && (
-            <button className="btn btn-primary" onClick={() => setDrawer({ mode: "add" })}>+ ተከራይ ጨምር</button>
-          )}
-          <div className="tabs">
-            {[["all", "ሁሉም"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
-              <button key={k} className="tab" aria-pressed={filters.status === k}
-                onClick={() => setFilters((s) => ({ ...s, status: k }))}>
-                {label}
+              <button className="tab" aria-pressed={filters.viewMode === "archive"}
+                onClick={() => setFilters((s) => ({ ...s, viewMode: "archive" }))}
+                style={{ fontWeight: filters.viewMode === "archive" ? "bold" : "normal" }}>
+                📂 የቀድሞ ተከራዮች (Archive / Moved Out)
               </button>
-            ))}
+            </div>
+
+            {owner && filters.viewMode === "active" && (
+              <button className="btn btn-primary" onClick={() => setDrawer({ mode: "add" })}>+ አዲስ ተከራይ ጨምር</button>
+            )}
           </div>
-          <input className="search" type="search" placeholder="በስም፣ በክፍል ቁጥር ወይም በስልክ ፈልግ"
-            value={filters.q} onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))} />
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+            {/* Floor Tabs */}
+            <div className="tabs">
+              {floors.map((f) => (
+                <button key={f} className="tab" aria-pressed={filters.floor === f}
+                  onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
+                  {f === "all" ? "ሁሉም ወለል" : f}
+                </button>
+              ))}
+            </div>
+
+            {/* Status Filter Tabs */}
+            {filters.viewMode === "active" && (
+              <div className="tabs">
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
+                  <button key={k} className="tab" aria-pressed={filters.status === k}
+                    onClick={() => setFilters((s) => ({ ...s, status: k }))}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <input className="search" type="search" placeholder="🔍 በስም፣ በክፍል ቁጥር ወይም በስልክ ፈልግ..."
+              value={filters.q} onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))} style={{ minWidth: 260 }} />
+          </div>
         </div>
 
-        <div className="tablecard">
+        {/* Tenant Table Container */}
+        <div className="tablecard" style={{ marginTop: 16 }}>
           <table>
             <thead>
               <tr>
-                <th scope="col">ተ.ቁ</th><th scope="col">ስም</th><th scope="col">ክፍል</th><th scope="col">ወለል</th>
-                <th scope="col">ስልክ</th><th scope="col">ክፍያ የሚያበቃበት ቀን</th><th scope="col">ሁኔታ</th>
+                <th scope="col">ተ.ቁ</th>
+                <th scope="col">ስም</th>
+                <th scope="col">ክፍል / ሱቅ</th>
+                <th scope="col">ወለል</th>
+                <th scope="col">ስልክ</th>
+                <th scope="col">ክፍያ የሚያበቃበት ቀን</th>
+                <th scope="col">ሁኔታ</th>
                 <th scope="col">ውል የሚያበቃበት</th>
-                {owner && <th scope="col" style={{ textAlign: "left" }}>ክፍያ መዝግብ</th>}
+                {owner && filters.viewMode === "active" && <th scope="col" style={{ textAlign: "left" }}>ክፍያ መዝግብ</th>}
               </tr>
             </thead>
             <tbody>
@@ -529,6 +633,7 @@ export default function App() {
                     <td data-label="ተ.ቁ">{i + 1}</td>
                     <td className="name" data-label="ስም">
                       <button className="link" onClick={() => setDrawer({ mode: "view", tenantId: t.id })}>{t.name}</button>
+                      {t.status === "moved_out" && <span style={{ fontSize: "0.75rem", color: "var(--late)", marginLeft: 6 }}>(ወጥቷል)</span>}
                     </td>
                     <td data-label="ክፍል">{t.room || "—"}</td>
                     <td data-label="ወለል">{t.floor}</td>
@@ -536,9 +641,11 @@ export default function App() {
                       {t.phone ? <a className="link" href={`tel:0${t.phone}`}>0{t.phone}</a> : "—"}
                     </td>
                     <td data-label="ክፍያ የሚያበቃበት">{fmtEth(t.payEnd)}</td>
-                    <td data-label="ሁኔታ"><span className={`pill ${s.cls}`}>{s.label}</span></td>
+                    <td data-label="ሁኔታ">
+                      <span className={`pill ${s.cls}`}>{s.label}</span>
+                    </td>
                     <td data-label="ውል የሚያበቃበት">{t.contractEnd || "—"}</td>
-                    {owner && (
+                    {owner && filters.viewMode === "active" && (
                       <td>
                         <div className="pay">
                           <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
@@ -552,7 +659,7 @@ export default function App() {
             </tbody>
           </table>
           {!loading && visible.length === 0 && (
-            <div className="empty">በዚህ ማጣሪያ ተከራይ የለም። ማጣሪያውን ቀይር።</div>
+            <div className="empty">በዚህ ማጣሪያ የተከራይ መዝገብ አልተገኘም።</div>
           )}
         </div>
 

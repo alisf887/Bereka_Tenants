@@ -2,6 +2,7 @@
 -- Bereka Tenant Register — Supabase schema
 -- Paste this whole file into Supabase Studio → SQL Editor → New query → Run.
 -- Safe to re-run: everything uses IF NOT EXISTS / OR REPLACE / DROP...IF EXISTS.
+-- Works on a fresh project AND on your existing database (section 1b upgrades it).
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -23,6 +24,9 @@ create table if not exists tenants (
   pay_end_y int,
   pay_end_m int check (pay_end_m is null or pay_end_m between 1 and 12),
   pay_end_d int check (pay_end_d is null or pay_end_d between 1 and 30),
+  -- 'active' = current tenant, 'moved_out' = archived (history is kept)
+  status text not null default 'active' check (status in ('active', 'moved_out')),
+  moved_out_at text not null default '',   -- Ethiopian date text, e.g. መጋቢት 12/2018
   created_at timestamptz not null default now()
 );
 
@@ -41,6 +45,17 @@ create table if not exists payments (
 );
 
 create index if not exists payments_tenant_id_idx on payments(tenant_id);
+
+-- ---------------------------------------------------------------------------
+-- 1b. Upgrade for databases created from the older version of this file.
+--     No-op if the columns already exist.
+-- ---------------------------------------------------------------------------
+alter table tenants
+  add column if not exists status text not null default 'active'
+    check (status in ('active', 'moved_out'));
+
+alter table tenants
+  add column if not exists moved_out_at text not null default '';
 
 -- ---------------------------------------------------------------------------
 -- 2. Row Level Security
@@ -81,6 +96,26 @@ create policy "owner can delete payments" on payments for delete
 -- No update policy on payments at all — an UPDATE is denied for every
 -- role, owner included. That enforces "payment history is permanent" at
 -- the database layer, not just in the app's UI.
+
+-- A tenant who has payment records can never be hard-deleted (the cascade
+-- would silently wipe the financial history). Use status = 'moved_out'.
+create or replace function prevent_tenant_deletion_with_payments()
+returns trigger
+language plpgsql
+as $$
+begin
+  if exists (select 1 from payments where tenant_id = old.id) then
+    raise exception 'ይህ ተከራይ የክፍያ ታሪክ አለው፤ ሊሰረዝ አይችልም። በምትኩ "ወጥቷል (Move Out)" ይጠቀሙ።';
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists trg_prevent_tenant_deletion on tenants;
+create trigger trg_prevent_tenant_deletion
+  before delete on tenants
+  for each row
+  execute function prevent_tenant_deletion_with_payments();
 
 -- ---------------------------------------------------------------------------
 -- 3. Ethiopian calendar helpers (server-side, used only by the RPCs below)
@@ -138,6 +173,9 @@ begin
   select * into t from tenants where id = p_tenant_id for update;
   if t.id is null then
     raise exception 'tenant not found';
+  end if;
+  if t.status = 'moved_out' then
+    raise exception 'ይህ ተከራይ ውል አቋርጦ ወጥቷል፤ ክፍያ መመዝገብ አይቻልም።';
   end if;
   if t.pay_end_y is null then
     raise exception 'payEnd not set for this tenant';
@@ -202,5 +240,14 @@ grant execute on function revert_last_payment(uuid) to authenticated;
 --    not exist", enable Realtime for both tables instead via
 --    Database → Replication in Supabase Studio, then skip this block.
 -- ---------------------------------------------------------------------------
-alter publication supabase_realtime add table tenants;
-alter publication supabase_realtime add table payments;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'tenants') then
+    alter publication supabase_realtime add table tenants;
+  end if;
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'payments') then
+    alter publication supabase_realtime add table payments;
+  end if;
+end $$;

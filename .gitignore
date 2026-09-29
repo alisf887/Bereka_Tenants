@@ -5,9 +5,18 @@ node_modules/
 dist/
 dist-ssr/
 
-# env files — never commit real Supabase keys
+# env files — never commit real keys (but keep the example file)
 .env
-.env.local
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# deploy tool folders
+.vercel/
+.netlify/
 
 # OS / editor
 .DS_Store

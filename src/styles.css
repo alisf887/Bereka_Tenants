@@ -1,67 +1,89 @@
+/* =====================================================================
+   በረካ ህንፃ — Tenant Register  |  Final stylesheet
+   Works with App.jsx. Theme: set data-theme="light|dark" on <html>
+   (see the useEffect snippet); with no attribute it follows the OS.
+   ===================================================================== */
+
 :root{
-  --bg:#EBEEEC; --panel:#FFFFFF; --panel-2:#F4F6F5; --ink:#12201D; --ink-soft:#5A6B66;
-  --line:#D4DAD7; --accent:#155E4B; --accent-hi:#1B7A5F; --accent-lo:#0E4A3B; --accent-soft:#DCEAE4;
-  --ok:#1C6B4A; --ok-bg:#DCEEE3; --warn:#8A5A09; --warn-bg:#FBEBD0; --late:#96271F; --late-bg:#F8DFDC;
-  --shadow:0 1px 2px rgba(18,32,29,.08), 0 8px 24px rgba(18,32,29,.06);
-  --shadow-btn:0 1px 2px rgba(14,74,59,.16), 0 4px 10px rgba(14,74,59,.14);
+  --bg:#F4F6F8; --panel:#FFFFFF; --panel-2:#F8FAFC; --ink:#0F172A; --ink-soft:#64748B;
+  --line:#E2E8F0; --accent:#0F766E; --accent-hi:#14B8A6; --accent-lo:#115E59; --accent-soft:#F0FDFA;
+  --accent-hover:#115E59;          /* primary button hover */
+  --on-accent:#FFFFFF;             /* text on primary buttons */
+  --ok:#0D9488; --ok-bg:#F0FDFA; --warn:#B45309; --warn-bg:#FFFBEB; --late:#BE123C; --late-bg:#FFF1F2;
+  --shadow:0 1px 3px 0 rgba(15,23,42,0.06), 0 1px 2px -1px rgba(15,23,42,0.04);
+  --shadow-lg:0 10px 15px -3px rgba(15,23,42,0.08), 0 4px 6px -4px rgba(15,23,42,0.04);
+  --shadow-btn:0 1px 2px 0 rgba(15,23,42,0.05);
   --radius:10px;
+
+  /* Aliases: App.jsx inline styles use these names */
+  --border:var(--line);
+  --bg-secondary:var(--panel-2);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0E1614; --panel:#16211E; --panel-2:#1C2926; --ink:#E7EDEA; --ink-soft:#9DAEA8;
-    --line:#2A3A35; --accent:#4FCFA6; --accent-hi:#6EE0BE; --accent-lo:#3AAE8C; --accent-soft:#1D332C;
-    --ok:#7FD8AE; --ok-bg:#16332A; --warn:#E8B45F; --warn-bg:#332918; --late:#F09189; --late-bg:#361C1A;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
-    --shadow-btn:0 1px 2px rgba(0,0,0,.45), 0 6px 16px rgba(79,207,166,.18);
+    --bg:#0B0F17; --panel:#111827; --panel-2:#1F2937; --ink:#F9FAFB; --ink-soft:#9CA3AF;
+    --line:#374151; --accent:#2DD4BF; --accent-hi:#5EEAD4; --accent-lo:#0D9488; --accent-soft:#134E4A;
+    --accent-hover:#5EEAD4; --on-accent:#042F2E;
+    --ok:#2DD4BF; --ok-bg:#042F2E; --warn:#FBBF24; --warn-bg:#451A03; --late:#FB7185; --late-bg:#4C0519;
+    --shadow:0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.2);
+    --shadow-lg:0 10px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4);
+    --shadow-btn:0 1px 2px 0 rgba(0,0,0,0.4);
   }
 }
 [data-theme="dark"]{
-  --bg:#0E1614; --panel:#16211E; --panel-2:#1C2926; --ink:#E7EDEA; --ink-soft:#9DAEA8;
-  --line:#2A3A35; --accent:#4FCFA6; --accent-hi:#6EE0BE; --accent-lo:#3AAE8C; --accent-soft:#1D332C;
-  --ok:#7FD8AE; --ok-bg:#16332A; --warn:#E8B45F; --warn-bg:#332918; --late:#F09189; --late-bg:#361C1A;
-  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
-  --shadow-btn:0 1px 2px rgba(0,0,0,.45), 0 6px 16px rgba(79,207,166,.18);
+  --bg:#0B0F17; --panel:#111827; --panel-2:#1F2937; --ink:#F9FAFB; --ink-soft:#9CA3AF;
+  --line:#374151; --accent:#2DD4BF; --accent-hi:#5EEAD4; --accent-lo:#0D9488; --accent-soft:#134E4A;
+  --accent-hover:#5EEAD4; --on-accent:#042F2E;
+  --ok:#2DD4BF; --ok-bg:#042F2E; --warn:#FBBF24; --warn-bg:#451A03; --late:#FB7185; --late-bg:#4C0519;
+  --shadow:0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.2);
+  --shadow-lg:0 10px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4);
+  --shadow-btn:0 1px 2px 0 rgba(0,0,0,0.4);
 }
+
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
   background:var(--bg); color:var(--ink);
-  font-family:"Noto Sans Ethiopic","IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
-  font-size:15px; line-height:1.5; font-feature-settings:"tnum" 1;
+  font-family:"Noto Sans Ethiopic","Inter",system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:14.5px; line-height:1.5; font-feature-settings:"tnum" 1;
+  -webkit-font-smoothing: antialiased;
 }
-.wrap{max-width:1180px;margin:0 auto;padding:28px 20px calc(72px + env(safe-area-inset-bottom))}
-header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:22px;
-  border-bottom:1px solid var(--line);padding-bottom:18px}
-h1{font-size:27px;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em}
-.sub{color:var(--ink-soft);font-size:13.5px;margin-top:5px}
-.toolbtns{display:flex;gap:8px;flex-wrap:wrap}
+.wrap{max-width:1240px;margin:0 auto;padding:32px 24px calc(72px + env(safe-area-inset-bottom))}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:28px;
+  border-bottom:1px solid var(--line);padding-bottom:20px}
+h1{font-size:24px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-soft);font-size:13px;margin-top:4px;font-weight:400}
+.toolbtns{display:flex;gap:10px;flex-wrap:wrap}
 button{font:inherit;cursor:pointer}
 
-/* ---------- BUTTONS: this is the piece that was flat/static before ---------- */
+/* ---------- BUTTONS ---------- */
 .btn{
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;
-  padding:9px 14px;font-weight:600;font-size:13.5px;letter-spacing:.01em;
-  transition:border-color .14s ease,background .14s ease,transform .08s ease,box-shadow .14s ease;
-}
-.btn:hover{border-color:var(--accent);background:var(--panel-2)}
-.btn:active{transform:translateY(1px)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btn-primary{
-  background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:#fff;border-color:var(--accent-lo);
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:8px 14px;font-weight:500;font-size:13.5px;letter-spacing:-0.01em;
   box-shadow:var(--shadow-btn);
+  transition:all .15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.btn-primary:hover{background:linear-gradient(180deg,var(--accent),var(--accent-lo));border-color:var(--accent-lo)}
-.btn-primary:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(14,74,59,.2)}
-.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft)}
+.btn:hover{border-color:var(--ink-soft);background:var(--panel-2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{
+  background:var(--accent);color:var(--on-accent);border-color:var(--accent-lo);
+  box-shadow:0 1px 2px 0 rgba(15,118,110,0.2);
+}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-lo)}
+.btn-primary:active{transform:translateY(1px);box-shadow:none}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft);box-shadow:none}
 .btn-ghost:hover{background:var(--panel-2);color:var(--ink);border-color:var(--line)}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
-.stat b{display:block;font-size:23px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
-.stat span{color:var(--ink-soft);font-size:12.5px}
+/* ---------- STATS ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);transition:border-color .15s ease}
+.stat:hover{border-color:var(--ink-soft)}
+.stat b{display:block;font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat span{color:var(--ink-soft);font-size:12.5px;font-weight:500;margin-top:2px;display:block}
 .stat.accent{border-color:var(--accent);background:var(--accent-soft)}
 .stat.accent b{color:var(--accent-lo)}
 [data-theme="dark"] .stat.accent b{color:var(--accent)}
@@ -69,188 +91,243 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-r
   :root:not([data-theme="light"]) .stat.accent b{color:var(--accent)}
 }
 
-.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tab{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-size:13.5px;color:var(--ink-soft);
-  transition:all .14s ease;font-weight:600}
-.tab[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-lo);font-weight:700}
-input[type=search],input[type=text],input[type=number],select{
-  font:inherit;font-size:16px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:8px;padding:9px 12px;min-width:0
+/* ---------- CONTROLS ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--panel-2);padding:4px;border:1px solid var(--line);border-radius:10px}
+.tab{border:1px solid transparent;background:transparent;border-radius:7px;padding:6px 14px;font-size:13px;color:var(--ink-soft);
+  transition:all .15s ease;font-weight:500}
+.tab:hover{color:var(--ink)}
+.tab[aria-pressed="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:600;box-shadow:var(--shadow-btn)}
+input[type=search],input[type=text],input[type=number],input[type=email],input[type=password],input:not([type]),select{
+  font:inherit;font-size:14px;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:8px;padding:8px 12px;min-width:0;box-shadow:var(--shadow-btn);
+  transition:border-color .15s ease,box-shadow .15s ease;
 }
-input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.search{flex:1;min-width:180px}
+input:focus-visible,select:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search{flex:1;min-width:220px}
+
+/* ---------- TABLE ---------- */
 .tablecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:920px}
-th,td{padding:12px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle}
-th{font-size:12px;color:var(--ink-soft);font-weight:700;background:var(--panel-2);position:sticky;top:0;z-index:1;
-  text-transform:none;letter-spacing:.02em}
-th:first-child,td:first-child{text-align:center;width:44px;color:var(--ink-soft)}
-td.name{text-align:right;font-weight:600}
-td.name small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px;margin-top:2px}
-tr:last-child td{border-bottom:none}
+/* scoped to .tablecard so the receipt's own <table> is not affected */
+.tablecard table{border-collapse:collapse;width:100%;min-width:960px}
+.tablecard th,.tablecard td{padding:13px 16px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle}
+.tablecard th{font-size:12px;color:var(--ink-soft);font-weight:600;background:var(--panel-2);position:sticky;top:0;z-index:1;
+  letter-spacing:.02em}
+.tablecard th:first-child,.tablecard td:first-child{text-align:center;width:48px;color:var(--ink-soft)}
+.tablecard td.name{text-align:right;font-weight:600}
+.tablecard td.name small{display:block;font-weight:400;color:var(--ink-soft);font-size:12px;margin-top:2px}
+.tablecard tr:last-child td{border-bottom:none}
+tr.row{transition:background-color .1s ease}
 tr.row:hover td{background:var(--panel-2)}
-.link{background:none;border:none;color:inherit;font:inherit;font-weight:600;padding:0;text-align:right;text-decoration:underline;
-  text-decoration-color:var(--line);text-underline-offset:2px}
-.link:hover{text-decoration-color:var(--accent);color:var(--accent-lo)}
-.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.link{background:none;border:none;font:inherit;font-weight:600;padding:0;text-align:right;text-decoration:none;
+  color:var(--accent);transition:color .15s ease}
+.link:hover{color:var(--accent-hi);text-decoration:underline;text-underline-offset:2px}
+
+/* ---------- PILLS ---------- */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;letter-spacing:-0.01em}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.pill.ok{background:var(--ok-bg);color:var(--ok)}
-.pill.warn{background:var(--warn-bg);color:var(--warn)}
-.pill.late{background:var(--late-bg);color:var(--late)}
-.pill.none{background:var(--panel-2);color:var(--ink-soft)}
-.pay{display:flex;gap:8px;justify-content:flex-start}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(13,148,136,0.15)}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(180,83,9,0.15)}
+.pill.late{background:var(--late-bg);color:var(--late);border:1px solid rgba(190,18,60,0.15)}
+.pill.none{background:var(--panel-2);color:var(--ink-soft);border:1px solid var(--line)}
+
+/* ---------- PAY BUTTONS ---------- */
+.pay{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start}
 .paybtn{
   display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent-lo);
-  background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:#fff;border-radius:8px;
-  padding:7px 12px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow-btn);
-  transition:transform .08s ease,box-shadow .14s ease,opacity .14s ease;
+  background:var(--accent);color:var(--on-accent);border-radius:7px;
+  padding:6px 12px;font-size:12.5px;font-weight:600;white-space:nowrap;box-shadow:var(--shadow-btn);
+  transition:all .15s ease;
 }
 .paybtn svg{width:13px;height:13px;flex:0 0 auto}
-.paybtn:hover{box-shadow:0 2px 4px rgba(14,74,59,.2),0 10px 20px rgba(14,74,59,.18)}
+.paybtn:hover{background:var(--accent-hover);box-shadow:0 2px 4px rgba(15,118,110,0.2)}
 .paybtn:active{transform:translateY(1px)}
 .paybtn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none;background:var(--panel-2);color:var(--ink-soft);border-color:var(--line)}
-.paybtn.secondary{background:var(--panel);color:var(--ink);border-color:var(--line);box-shadow:none}
-.paybtn.secondary:hover{border-color:var(--accent);background:var(--panel-2)}
-.money{font-variant-numeric:tabular-nums;white-space:nowrap}
+.paybtn.secondary{background:var(--panel);color:var(--ink);border-color:var(--line);box-shadow:var(--shadow-btn)}
+.paybtn.secondary:hover{border-color:var(--ink-soft);background:var(--panel-2)}
+.money{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
 .muted{color:var(--ink-soft)}
-.small{font-size:12.5px}
+.small{font-size:12px}
 
-.scrim{position:fixed;inset:0;background:rgba(10,20,18,.45);z-index:40}
-.drawer{position:fixed;top:0;left:0;height:100%;width:min(440px,100%);background:var(--panel);
-  border-right:1px solid var(--line);z-index:50;overflow-y:auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom))}
+/* ---------- ERROR MESSAGE (was missing) ---------- */
+.err{
+  background:var(--late-bg);color:var(--late);border:1px solid var(--late);
+  border-radius:8px;padding:10px 12px;font-size:13px;font-weight:500;margin:12px 0;
+}
+
+/* ---------- DRAWER / TOAST ---------- */
+.scrim{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(2px);z-index:40;animation:fade-in .15s ease}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.drawer{position:fixed;top:0;left:0;height:100%;width:min(460px,100%);background:var(--panel);
+  border-right:1px solid var(--line);z-index:50;overflow-y:auto;padding:24px 24px calc(24px + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow-lg)}
 @media (prefers-reduced-motion:no-preference){
-  .drawer{animation:slide-in .2s ease}
+  .drawer{animation:slide-in .25s cubic-bezier(0.16, 1, 0.3, 1)}
   @keyframes slide-in{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 }
-.drawer h2{margin:0 34px 2px 0;font-size:19px}
+.drawer h2{margin:0 36px 4px 0;font-size:18px;font-weight:700;letter-spacing:-.01em}
 .drawer .close{
-  position:absolute;top:16px;right:16px;width:32px;height:32px;padding:0;
+  position:absolute;top:18px;right:18px;width:32px;height:32px;padding:0;
   display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:15px;line-height:1;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--ink-soft);
 }
-.field{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:center;margin:9px 0}
-.field label{color:var(--ink-soft);font-size:13px}
-.field span:first-child{color:var(--ink-soft);font-size:13px}
-.hist{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
-.hist h3{font-size:13px;color:var(--ink-soft);margin:0 0 8px;font-weight:700}
+.drawer .close:hover{background:var(--line);color:var(--ink)}
+.field{display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;margin:10px 0}
+.field label{color:var(--ink-soft);font-size:13px;font-weight:500}
+.field span:first-child{color:var(--ink-soft);font-size:13px;font-weight:500}
+.field input:not([type=number]),.field select{width:100%}
+.hist{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
+.hist h3{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;font-weight:600;letter-spacing:.02em}
 .hist ul{padding:0;margin:0;list-style:none}
-.hist li{margin-bottom:9px;font-size:13.5px;display:flex;justify-content:space-between;gap:10px}
-.drawer-actions{display:flex;gap:8px;margin-top:18px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--ink);color:var(--bg);border-radius:10px;padding:11px 16px;display:flex;gap:14px;align-items:center;
-  z-index:60;box-shadow:var(--shadow);max-width:92vw;font-size:13.5px}
-.toast button{background:none;border:none;color:var(--accent-hi);font-weight:700;text-decoration:underline;padding:0}
-.empty{padding:40px;text-align:center;color:var(--ink-soft)}
-footer{margin-top:24px;color:var(--ink-soft);font-size:12.5px}
+.hist li{margin-bottom:10px;font-size:13.5px;display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:var(--panel-2);border-radius:6px;border:1px solid var(--line)}
+.drawer-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);border-radius:8px;padding:12px 18px;display:flex;gap:16px;align-items:center;
+  z-index:60;box-shadow:var(--shadow-lg);max-width:92vw;font-size:13.5px;border:1px solid var(--line)}
+.toast button{background:none;border:none;color:var(--accent-hi);font-weight:600;text-decoration:underline;padding:0}
+.empty{padding:48px;text-align:center;color:var(--ink-soft);font-weight:500}
+footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
 
+/* ---------- RESPONSIVE ---------- */
 @media (max-width:860px){
-  .wrap{padding-left:14px;padding-right:14px}
-  h1{font-size:21px}
+  .wrap{padding-left:16px;padding-right:16px}
+  h1{font-size:20px}
   .field{grid-template-columns:1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
-  .stat b{font-size:19px}
+  .stat.accent{grid-column:1 / -1}
+  .stat b{font-size:18px}
+
+  /* 16px inputs stop iOS Safari from zooming on focus */
+  input[type=search],input[type=text],input[type=number],input[type=email],input[type=password],input:not([type]),select{
+    font-size:16px;
+  }
+
   .tablecard{background:none;border:none;box-shadow:none;overflow:visible}
-  table{min-width:0;display:block}
-  thead{display:none}
-  tbody{display:block}
+  .tablecard table{min-width:0;display:block}
+  .tablecard thead{display:none}
+  .tablecard tbody{display:block}
   tr.row{display:block;background:var(--panel);border:1px solid var(--line);
-    border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px}
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
   tr.row:hover td{background:none}
-  td{display:flex;justify-content:space-between;align-items:center;gap:14px;
-    padding:7px 0;border-bottom:1px solid var(--line);text-align:left;width:auto}
-  td::before{content:attr(data-label);color:var(--ink-soft);font-size:12.5px;flex:0 0 auto}
-  td:first-child{display:none}
-  td.name{border-bottom:none;padding:0 0 4px;font-size:17px}
-  td.name::before{content:none}
-  td.name .link{text-align:left}
-  td:last-child{border-bottom:none;padding-top:12px}
-  td:last-child::before{content:none}
+  .tablecard td{display:flex;justify-content:space-between;align-items:center;gap:16px;
+    padding:8px 0;border-bottom:1px solid var(--line);text-align:left;width:auto}
+  .tablecard td::before{content:attr(data-label);color:var(--ink-soft);font-size:12px;font-weight:500;flex:0 0 auto}
+  .tablecard td:first-child{display:none}
+  .tablecard td.name{border-bottom:none;padding:0 0 6px;font-size:16px}
+  .tablecard td.name::before{content:none}
+  .tablecard td.name .link{text-align:left}
+  .tablecard td:last-child{border-bottom:none}
+  /* only the payment-button cell has no data-label, so only it loses the label */
+  .tablecard td:not([data-label]){padding-top:14px}
+  .tablecard td:not([data-label])::before{content:none}
   .pay{width:100%;gap:8px}
-  .paybtn{flex:1;justify-content:center;min-height:44px;font-size:14px}
-  .tab{min-height:38px}
+  .paybtn{flex:1;justify-content:center;min-height:44px;font-size:13.5px}
+  .tab{min-height:36px}
   .search{width:100%;flex-basis:100%}
   .drawer{width:100%}
+  .drawer-actions .paybtn,.drawer-actions .btn{min-height:44px}
   .toast{bottom:calc(16px + env(safe-area-inset-bottom));width:calc(100% - 24px);justify-content:space-between}
 }
 @media (min-width:861px) and (max-width:1024px){
-  th,td{padding:10px 8px;font-size:14px}
-  table{min-width:820px}
+  .tablecard th,.tablecard td{padding:10px 10px;font-size:13.5px}
+  .tablecard table{min-width:860px}
 }
 
-/* ---------- LOGIN PAGE ---------- */
+/* ---------- LOGIN (shown inside the drawer) ---------- */
 .loginwrap{
-  display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;
+  display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;
   background:
-    radial-gradient(680px circle at 15% 10%, var(--accent-soft), transparent 60%),
-    radial-gradient(520px circle at 85% 90%, var(--accent-soft), transparent 55%),
+    radial-gradient(800px circle at 15% 10%, var(--accent-soft), transparent 60%),
+    radial-gradient(600px circle at 85% 90%, var(--accent-soft), transparent 55%),
     var(--bg);
 }
 .loginbox{
-  background:var(--panel);border:1px solid var(--line);border-radius:16px;
-  box-shadow:0 1px 2px rgba(18,32,29,.08), 0 24px 48px -12px rgba(14,74,59,.22);
-  padding:32px 30px;width:min(380px,92vw);
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 4px 6px -1px rgba(15,23,42,0.08), 0 20px 25px -5px rgba(15,23,42,0.1);
+  padding:36px 32px;width:min(400px,92vw);
 }
+/* inside the drawer: drop the full-page backdrop and card chrome */
+.drawer .loginwrap{min-height:0;padding:0;background:none;display:block}
+.drawer .loginbox{width:100%;border:none;box-shadow:none;padding:8px 0;background:transparent;animation:none}
 @media (prefers-reduced-motion:no-preference){
-  .loginbox{animation:login-in .32s cubic-bezier(.22,1,.36,1)}
-  @keyframes login-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  .loginbox{animation:login-in .3s cubic-bezier(0.16, 1, 0.3, 1)}
+  @keyframes login-in{from{opacity:0;transform:translateY(8px) scale(0.99)}to{opacity:1;transform:none}}
 }
 .login-mark{
-  width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;
-  border-radius:12px;background:linear-gradient(160deg,var(--accent-hi),var(--accent-lo));
-  box-shadow:var(--shadow-btn);margin-bottom:14px;
+  width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px;
+  border-radius:10px;background:var(--accent);color:var(--on-accent);
+  box-shadow:0 2px 4px rgba(15,118,110,0.25);margin-bottom:16px;
 }
-.loginbox h1{font-size:21px;margin:0 0 4px;letter-spacing:-.01em}
-.loginbox p.sub{margin:0 0 20px;color:var(--ink-soft);font-size:13.5px}
-.loginbox label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px}
+.loginbox h1{font-size:20px;margin:0 0 6px;letter-spacing:-.02em}
+.loginbox p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:13px}
+.loginbox label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:16px 0 6px}
 .loginbox input{width:100%;display:block;padding:10px 12px}
-.loginbox input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
-.loginbox .btn-primary{width:100%;margin-top:20px;padding:12px;font-size:14.5px;border-radius:10px}
-.loginbox .forgot{display:block;text-align:center;margin-top:14px;font-size:12.5px;color:var(--ink-soft);
-  text-decoration:underline;text-decoration-color:var(--line);background:none;border:none;padding:4px;width:100%}
-.loginbox .forgot:hover{color:var(--accent-lo);text-decoration-color:var(--accent)}
+.loginbox input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.loginbox .btn-primary{width:100%;margin-top:24px;padding:11px;font-size:14px;border-radius:8px}
+.loginbox .forgot{display:block;text-align:center;margin-top:16px;font-size:12.5px;color:var(--ink-soft);
+  text-decoration:none;background:none;border:none;padding:4px;width:100%;transition:color .15s ease}
+.loginbox .forgot:hover{color:var(--accent)}
 .loginbox .forgot:disabled{opacity:.5;cursor:not-allowed}
-.hint{background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:12px}
+.hint{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(13,148,136,0.15);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-top:14px;font-weight:500}
+
 /* ---------- RECEIPT PRINT-PREVIEW MODAL ---------- */
 .receipt-modal-wrap{
   position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
-  padding:24px;overflow-y:auto;
+  padding:24px;overflow-y:auto;background:rgba(15,23,42,0.6);backdrop-filter:blur(3px);
 }
 .receipt-modal{
-  position:relative;background:var(--panel);border-radius:12px;box-shadow:var(--shadow);
-  max-width:640px;width:100%;max-height:90vh;overflow-y:auto;
+  position:relative;background:var(--panel);border-radius:12px;box-shadow:var(--shadow-lg);
+  max-width:680px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid var(--line);
 }
+/* Close button inside the receipt modal (ReceiptModal.jsx) */
+.receipt-modal > .close{
+  position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;padding:0;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:15px;line-height:1;
+  background:var(--panel-2);color:var(--ink-soft);
+}
+.receipt-modal > .close:hover{background:var(--line);color:var(--ink)}
+/* keep the action buttons clear of the close button */
+.receipt-modal .receipt-actions{margin-right:30px}
 @media print{
-  .receipt-modal-wrap{position:static;padding:0;overflow:visible}
-  .receipt-modal{max-width:none;max-height:none;box-shadow:none;border-radius:0}
+  .no-print{display:none !important}
+  body.receipt-open .wrap,
+  body.receipt-open .drawer,
+  body.receipt-open .scrim,
+  body.receipt-open .toast{display:none !important}
+  .receipt-modal-wrap{position:static;padding:0;overflow:visible;background:none;backdrop-filter:none}
+  .receipt-modal{max-width:none;max-height:none;box-shadow:none;border-radius:0;border:none}
+  .receipt-modal .receipt-actions{margin-right:0}
 }
 
-/* ---------- RECEIPT CONTENT: responsive, since it used to be fixed-px inline styles ---------- */
-.receipt-outer{padding:20px}
+/* ---------- RECEIPT CONTENT ---------- */
+.receipt-outer{padding:24px}
 .receipt-actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
 .receipt-actions button{
-  padding:10px 16px;cursor:pointer;flex:1 1 auto;min-width:140px;
-  border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-weight:600;
+  padding:9px 16px;cursor:pointer;flex:1 1 auto;min-width:140px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-weight:500;
+  box-shadow:var(--shadow-btn);transition:all .15s ease;
 }
-.receipt-actions button:hover{border-color:var(--accent)}
+.receipt-actions button:hover{border-color:var(--ink-soft);background:var(--panel-2)}
 #receipt.receipt-paper{
-  background:#fff;color:#111;padding:30px;max-width:100%;overflow-wrap:break-word;
+  background:#fff;color:#111;padding:36px;max-width:100%;overflow-wrap:break-word;
+  border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.05);
 }
 #receipt table{width:100%;border-collapse:collapse}
-#receipt td{padding:4px 8px 4px 0;vertical-align:top}
+#receipt td{padding:6px 10px 6px 0;vertical-align:top}
 .receipt-receiver{margin-top:80px}
 @media (max-width:520px){
-  .receipt-modal-wrap{padding:10px}
+  .receipt-modal-wrap{padding:12px}
   .receipt-modal{border-radius:10px;max-height:95vh}
-  .receipt-outer{padding:14px}
-  .receipt-actions button{min-width:0;font-size:13px;padding:10px 8px}
-  #receipt.receipt-paper{padding:16px}
-  #receipt h1{font-size:19px;margin-bottom:2px}
-  #receipt h2{font-size:14px;margin-top:0}
-  #receipt h3{font-size:15px}
-  #receipt p{font-size:14px}
+  .receipt-outer{padding:16px}
+  .receipt-actions button{min-width:0;font-size:13px;padding:8px 10px}
+  #receipt.receipt-paper{padding:20px}
+  #receipt h1{font-size:18px;margin-bottom:2px}
+  #receipt h2{font-size:13px;margin-top:0}
+  #receipt h3{font-size:14px}
+  #receipt p{font-size:13.5px}
   .receipt-receiver{margin-top:48px}
 }
 @media print{
   .receipt-outer{padding:0}
-  #receipt.receipt-paper{padding:0}
+  #receipt.receipt-paper{padding:0;box-shadow:none}
 }
