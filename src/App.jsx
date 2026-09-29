@@ -1,4 +1,4 @@
-import './styles.css'; // Import this at the top of your main entry component
+import './styles.css'; 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { MONTHS, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
@@ -158,7 +158,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       room: form.room.trim(),
       phone: form.phone.replace(/\D/g, ""),
       contract_start: form.contractStart.trim(), 
-      contract_end: form.contractEnd.trim(), // <--- Added to instantly update contract expiration date
+      contract_end: form.contractEnd.trim(), 
       pay_start_raw: form.payStartRaw?.trim() ?? "",
       amt3: form.amt3 === "" ? null : Number(form.amt3),
       amt6: form.amt6 === "" ? null : Number(form.amt6),
@@ -169,9 +169,46 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     else { onFlash("መረጃው ተስተካክሏል።", false); onSaved(); }
   }
 
+  // --- NEW: Function to handle extending contract end date by 6 months or 1 year ---
+  async function extendContract(monthsToAdd) {
+    setBusy(true);
+    let currentEnd = form.contractEnd || "";
+    let updatedEnd = currentEnd;
+    
+    if (monthsToAdd === 12) {
+      const yearMatch = currentEnd.match(/\d{4}/);
+      if (yearMatch) {
+        const nextYear = parseInt(yearMatch[0], 10) + 1;
+        updatedEnd = currentEnd.replace(yearMatch[0], nextYear);
+      } else {
+        updatedEnd = "የአንድ አመት ውል ታድሷል";
+      }
+    } else if (monthsToAdd === 6) {
+      const yearMatch = currentEnd.match(/\d{4}/);
+      if (yearMatch) {
+        updatedEnd = currentEnd + " (+6 ወር)";
+      } else {
+        updatedEnd = "የስድስት ወር ውል ታድሷል";
+      }
+    }
+
+    set("contractEnd", updatedEnd);
+    
+    const { error } = await supabase.from("tenants")
+      .update({ contract_end: updatedEnd })
+      .eq("id", t.id);
+      
+    setBusy(false);
+    if (error) {
+      onFlash(errText(error), false);
+    } else {
+      onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል!`, false);
+      onSaved();
+    }
+  }
+
   async function handleMoveOut() {
     setBusy(true);
-    // Marks tenant as moved out, vacates room status safely without deleting row/payment cascade history
     const { error } = await supabase.from("tenants").update({
       status: "moved_out",
       room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ"
@@ -328,9 +365,23 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             </div>
           </div>
 
-          <div className="pay drawer-actions" style={{ marginTop: 12 }}>
-            <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
-            <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
+          <div className="pay drawer-actions" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
+            </div>
+
+            {/* --- NEW CONTRACT EXTENSION BUTTONS --- */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(6)}>
+                📅 የስድስት ወር ውል
+              </button>
+              <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(12)}>
+                📅 የአንድ አመት ውል
+              </button>
+            </div>
+            {/* -------------------------------------- */}
+
             {t.status !== "moved_out" && (
               <button className="btn" style={{ background: "#ef4444", color: "#fff", border: "none" }} disabled={busy} onClick={() => setShowMoveOutModal(true)}>
                 ወጥቷል (Move Out)
@@ -413,7 +464,6 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Apply the theme on <html> so body/background and all panels switch together
   useEffect(() => {
     const el = document.documentElement;
     if (theme === "auto") el.removeAttribute("data-theme");
@@ -454,7 +504,6 @@ export default function App() {
     return ["all", ...[...set].sort()];
   }, [tenants]);
 
-  // Separate active vs archive (moved_out) view filtering
   const scopedByViewMode = useMemo(() => {
     if (filters.viewMode === "archive") {
       return tenants.filter((t) => t.status === "moved_out");
@@ -522,7 +571,6 @@ export default function App() {
   return (
     <div>
       <div className="wrap">
-        {/* Enterprise SaaS Header & Controls */}
         <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -555,10 +603,8 @@ export default function App() {
           <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
 
-        {/* Enterprise Segmented Controls & Filters */}
         <div className="controls" style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel)", padding: 16, borderRadius: 12, border: "1px solid var(--border)" }}>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            {/* View Mode Tabs (Active vs Archive) */}
             <div className="tabs" style={{ display: "flex", gap: 4 }}>
               <button className="tab" aria-pressed={filters.viewMode === "active"}
                 onClick={() => setFilters((s) => ({ ...s, viewMode: "active" }))}
@@ -578,7 +624,6 @@ export default function App() {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-            {/* Floor Tabs */}
             <div className="tabs">
               {floors.map((f) => (
                 <button key={f} className="tab" aria-pressed={filters.floor === f}
@@ -588,7 +633,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Status Filter Tabs */}
             {filters.viewMode === "active" && (
               <div className="tabs">
                 {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
@@ -605,7 +649,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tenant Table Container */}
         <div className="tablecard" style={{ marginTop: 16 }}>
           <table>
             <thead>
