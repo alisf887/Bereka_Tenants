@@ -169,27 +169,32 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     else { onFlash("መረጃው ተስተካክሏል።", false); onSaved(); }
   }
 
-  // --- NEW: Function to handle extending contract end date by 6 months or 1 year ---
+  // --- Contract Extension with Exact Date Calculation ---
   async function extendContract(monthsToAdd) {
     setBusy(true);
     let currentEnd = form.contractEnd || "";
     let updatedEnd = currentEnd;
+
+    const numbers = currentEnd.match(/\d+/g);
     
-    if (monthsToAdd === 12) {
-      const yearMatch = currentEnd.match(/\d{4}/);
-      if (yearMatch) {
-        const nextYear = parseInt(yearMatch[0], 10) + 1;
-        updatedEnd = currentEnd.replace(yearMatch[0], nextYear);
-      } else {
-        updatedEnd = "የአንድ አመት ውል ታድሷል";
+    if (numbers && numbers.length >= 2) {
+      let day = parseInt(numbers[0], 10);
+      let month = parseInt(numbers[1], 10);
+      let year = numbers.length >= 3 ? parseInt(numbers[2], 10) : parseInt(numbers[numbers.length - 1], 10);
+
+      if (monthsToAdd === 6) {
+        month += 6;
+        if (month > 12) {
+          month -= 12;
+          year += 1;
+        }
+      } else if (monthsToAdd === 12) {
+        year += 1;
       }
-    } else if (monthsToAdd === 6) {
-      const yearMatch = currentEnd.match(/\d{4}/);
-      if (yearMatch) {
-        updatedEnd = currentEnd + " (+6 ወር)";
-      } else {
-        updatedEnd = "የስድስት ወር ውል ታድሷል";
-      }
+
+      updatedEnd = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+    } else {
+      updatedEnd = monthsToAdd === 12 ? "የአንድ አመት ውል ታድሷል" : "የስድስት ወር ውል ታድሷል";
     }
 
     set("contractEnd", updatedEnd);
@@ -202,7 +207,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል!`, false);
+      onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል! (አዲስ ቀን: ${updatedEnd})`, true, t.id);
       onSaved();
     }
   }
@@ -371,7 +376,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
               <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
             </div>
 
-            {/* --- NEW CONTRACT EXTENSION BUTTONS --- */}
+            {/* --- CONTRACT EXTENSION BUTTONS --- */}
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(6)}>
                 📅 የስድስት ወር ውል
@@ -380,7 +385,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
                 📅 የአንድ አመት ውል
               </button>
             </div>
-            {/* -------------------------------------- */}
+            {/* ---------------------------------- */}
 
             {t.status !== "moved_out" && (
               <button className="btn" style={{ background: "#ef4444", color: "#fff", border: "none" }} disabled={busy} onClick={() => setShowMoveOutModal(true)}>
