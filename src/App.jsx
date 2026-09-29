@@ -153,9 +153,12 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   async function saveInfo() {
     setBusy(true);
     const payload = {
-      name: form.name.trim(), floor: form.floor.trim(), room: form.room.trim(),
+      name: form.name.trim(), 
+      floor: form.floor.trim(), 
+      room: form.room.trim(),
       phone: form.phone.replace(/\D/g, ""),
-      contract_start: form.contractStart.trim(), contract_end: form.contractEnd.trim(),
+      contract_start: form.contractStart.trim(), 
+      contract_end: form.contractEnd.trim(), // <--- Added to instantly update contract expiration date
       pay_start_raw: form.payStartRaw?.trim() ?? "",
       amt3: form.amt3 === "" ? null : Number(form.amt3),
       amt6: form.amt6 === "" ? null : Number(form.amt6),
