@@ -37,13 +37,6 @@ function useTenants() {
       let floor = t.floor;
       let room = t.room;
 
-      // Exact placement overrides for specific tenants
-      if (t.name?.includes("ቂማ ኤጀንሲ")) {
-        floor = "3ኛ ፎቅ"; // or "3F" depending on your naming convention
-      } else if (t.name?.includes("ኤም ኤ ይትባረክ")) {
-        floor = "ስቶር"; // or store designation
-      }
-
       return {
         id: t.id,
         name: t.name,
@@ -669,7 +662,7 @@ export default function App() {
       {drawer && (
         <>
           <div className="scrim open" onClick={() => setDrawer(null)} />
-          <aside className="drawer open" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+          <aside className={`drawer open${drawer.mode === "login" ? " drawer-login" : ""}`} role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
             <button className="btn close" aria-label="ዝጋ" onClick={() => setDrawer(null)}>✕</button>
             <div>
               {drawer.mode === "login" && <Login onDone={() => setDrawer(null)} />}

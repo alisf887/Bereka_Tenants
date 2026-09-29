@@ -251,3 +251,9 @@ begin
     alter publication supabase_realtime add table payments;
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- 6. Tell Supabase's API to reload the table structure, so new columns
+--    (like status) are visible immediately instead of "schema cache" errors.
+-- ---------------------------------------------------------------------------
+notify pgrst, 'reload schema';
