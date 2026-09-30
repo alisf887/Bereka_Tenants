@@ -141,7 +141,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   );
   const [busy, setBusy] = useState(false);
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
-  const [checkoutDateInput, setCheckoutDateInput] = useState(t?.checkoutDate || "");
+  const [checkoutDateInput, setCheckoutDateInput] = useState(t?.checkoutDate || "መስከረም 16/2019");
   const firstFieldRef = useRef(null);
   
   useEffect(() => { firstFieldRef.current?.focus(); }, []);
@@ -267,17 +267,25 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       return;
     }
     setBusy(true);
+    // ተከራዩ ሲወጣ ክፍያው እንዲጸዳ (Clear/Paid እንዲሆን) የ pay_end ቀኑን ወደፊት (ለምሳሌ አመት 2100) እናደርገዋለን 
+    // ወይም ክፍያዎቹን ዜሮ/null እናደርጋለን። በዚህ መልኩ 'ያልተከፈለ' (Late) በሚለው ስታቲስቲክስ ውስጥ አይጠቃለልም።
     const { error } = await supabase.from("tenants").update({
       status: "moved_out",
       checkout_date: checkoutDateInput.trim(),
-      room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ"
+      room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ",
+      pay_end_y: 2100, // ክፍያ እንዳይጠየቅ የክፍያ ማብቂያውን ገደብ ወደፊት እናደርገዋለን
+      pay_end_m: 1,
+      pay_end_d: 1,
+      amt3: 0,
+      amt6: 0
     }).eq("id", t.id);
+    
     setBusy(false);
     setShowMoveOutModal(false);
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። (ቀን: ${checkoutDateInput})`, false);
+      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። ክፍያው ተሰርዟል (ቀን: ${checkoutDateInput})`, false);
       onSaved();
       onClose();
     }
@@ -450,7 +458,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           <h4 style={{ margin: "0 0 8px 0", color: "var(--late)" }}>ተከራይ ውል አቋርጦ መውጣቱን ያረጋግጡ</h4>
           <div className="field">
             <label>የወጡበት ቀን (የኢትዮጵያ አቆጣጠር) *</label>
-            <input placeholder="ለምሳሌ፦ መጋቢት 12/2018" value={checkoutDateInput} onChange={(e) => setCheckoutDateInput(e.target.value)} />
+            <input placeholder="ለምሳሌ፦ መስከረም 16/2019" value={checkoutDateInput} onChange={(e) => setCheckoutDateInput(e.target.value)} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button className="btn btn-primary" disabled={busy} onClick={handleMoveOut}>አዎ፣ ውል ጨርሶ ወጥቷል</button>
@@ -901,7 +909,7 @@ function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
     }
   }
   return (
-    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt) : "መጠን አልተመዘገበም"}>
+    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt) : "መጠን አልተመዘገብም"}>
       {cycle} ወር ተከፈለ
     </button>
   );
