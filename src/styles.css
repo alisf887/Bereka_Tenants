@@ -348,3 +348,21 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
 .floor-tab-btn.floor-3f { background-color: #6b21a8 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-5f { background-color: #b45309 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-store { background-color: #78350f !important; color: #ffffff !important; }
+/* Unique Professional Status Colors */
+.pill.late, .tab[aria-pressed="true"].status-late {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #f87171 !important;
+}
+
+.pill.soon, .tab[aria-pressed="true"].status-soon {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fbbf24 !important;
+}
+
+.pill.paid, .tab[aria-pressed="true"].status-paid {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 1px solid #34d399 !important;
+}
