@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Receipt from "./Receipt";
 
 /**
@@ -7,22 +7,36 @@ import Receipt from "./Receipt";
  * Receipt.jsx itself — this component is just the overlay chrome.
  *
  * The dimmed/blurred backdrop comes from .receipt-modal-wrap in styles.css,
- * so no separate .scrim is needed (it would double the dimming and the
- * full-screen wrap would sit on top of it, blocking outside clicks anyway).
+ * so no separate .scrim is needed.
  */
 export default function ReceiptModal({ tenant, payment, onClose }) {
-  // Close with the Escape key
+  const onCloseRef = useRef(onClose);
+  const dialogRef = useRef(null);
+  const pressedOnBackdrop = useRef(false);
+
+  // Keep the latest onClose without re-subscribing listeners on every parent render
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  // Escape closes
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") onClose(); }
+    function onKey(e) { if (e.key === "Escape") onCloseRef.current(); }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
-  // While open, tell the print stylesheet to drop the page behind the receipt
-  // (visibility:hidden alone still reserves space and prints blank pages).
+  // While open: hide the page behind it when printing, lock background scroll,
+  // move focus into the dialog, and restore focus to the opener on close.
   useEffect(() => {
+    const opener = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
     document.body.classList.add("receipt-open");
-    return () => document.body.classList.remove("receipt-open");
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.focus();
+    return () => {
+      document.body.classList.remove("receipt-open");
+      document.body.style.overflow = prevOverflow;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
   }, []);
 
   if (!tenant || !payment) return null;
@@ -33,9 +47,12 @@ export default function ReceiptModal({ tenant, payment, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-label="ደረሰኝ"
-      onClick={onClose}
+      // Close only when the press AND release both happen on the backdrop,
+      // so selecting text inside the receipt and releasing outside doesn't close it.
+      onMouseDown={(e) => { pressedOnBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (pressedOnBackdrop.current && e.target === e.currentTarget) onClose(); }}
     >
-      <div className="receipt-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="receipt-modal" ref={dialogRef} tabIndex={-1} style={{ outline: "none" }}>
         <button className="btn close no-print" aria-label="ዝጋ" onClick={onClose}>
           ✕
         </button>

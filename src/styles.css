@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap');
+
 /* =====================================================================
    በረካ ህንፃ — Tenant Register  |  Final stylesheet
    Works with App.jsx. Theme: set data-theme="light|dark" on <html>
@@ -14,6 +16,7 @@
   --shadow-lg:0 10px 15px -3px rgba(15,23,42,0.08), 0 4px 6px -4px rgba(15,23,42,0.04);
   --shadow-btn:0 1px 2px 0 rgba(15,23,42,0.05);
   --radius:10px;
+  color-scheme:light;
 
   /* Aliases: App.jsx inline styles use these names */
   --border:var(--line);
@@ -28,6 +31,7 @@
     --shadow:0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.2);
     --shadow-lg:0 10px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4);
     --shadow-btn:0 1px 2px 0 rgba(0,0,0,0.4);
+    color-scheme:dark;
   }
 }
 [data-theme="dark"]{
@@ -38,7 +42,10 @@
   --shadow:0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.2);
   --shadow-lg:0 10px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4);
   --shadow-btn:0 1px 2px 0 rgba(0,0,0,0.4);
+  color-scheme:dark;
 }
+
+[data-theme="light"]{color-scheme:light}
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%}
@@ -110,16 +117,16 @@ input:focus-visible,select:focus-visible{outline:none;border-color:var(--accent)
 .tablecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto}
 /* scoped to .tablecard so the receipt's own <table> is not affected */
 .tablecard table{border-collapse:collapse;width:100%;min-width:960px}
-.tablecard th,.tablecard td{padding:13px 16px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle}
+.tablecard th,.tablecard td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
 .tablecard th{font-size:16px;color:var(--ink-soft);font-weight:600;background:var(--panel-2);position:sticky;top:0;z-index:1;
   letter-spacing:.02em}
 .tablecard th:first-child,.tablecard td:first-child{text-align:center;width:48px;color:var(--ink-soft)}
-.tablecard td.name{text-align:right;font-weight:600}
+.tablecard td.name{text-align:left;font-weight:600}
 .tablecard td.name small{display:block;font-weight:400;color:var(--ink-soft);font-size:13px;margin-top:2px}
 .tablecard tr:last-child td{border-bottom:none}
 tr.row{transition:background-color .1s ease}
 tr.row:hover td{background:var(--panel-2)}
-.link{background:none;border:none;font:inherit;font-weight:600;padding:0;text-align:right;text-decoration:none;
+.link{background:none;border:none;font:inherit;font-weight:600;padding:0;text-align:left;text-decoration:none;
   color:var(--accent);transition:color .15s ease}
 .link:hover{color:var(--accent-hi);text-decoration:underline;text-underline-offset:2px}
 
@@ -188,14 +195,26 @@ tr.row:hover td{background:var(--panel-2)}
 .field label{color:var(--ink-soft);font-size:13px;font-weight:500}
 .field span:first-child{color:var(--ink-soft);font-size:13px;font-weight:500}
 .field input:not([type=number]),.field select{width:100%}
+/* amount inputs are direct children -> full width; date parts live inside a div -> keep their inline widths */
+.field > input[type=number]{width:100%}
+/* payment-end / checkout date row: month select + day + year (+ save button) on one line */
+.field > div{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.field > div select{width:auto;flex:1 1 110px}
+.field > div input{width:auto}
 .hist{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
 .hist h3{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;font-weight:600;letter-spacing:.02em}
 .hist ul{padding:0;margin:0;list-style:none}
 .hist li{margin-bottom:10px;font-size:13.5px;display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:var(--panel-2);border-radius:6px;border:1px solid var(--line)}
 .drawer-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.drawer-actions .paybtn{flex:1;justify-content:center;padding:9px 12px;font-size:13.5px}
+.drawer-actions .btn{justify-content:center}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--bg);border-radius:8px;padding:12px 18px;display:flex;gap:16px;align-items:center;
   z-index:60;box-shadow:var(--shadow-lg);max-width:92vw;font-size:13.5px;border:1px solid var(--line)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:toast-in .2s ease}
+  @keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+}
 .toast button{background:none;border:none;color:var(--accent-hi);font-weight:600;text-decoration:underline;padding:0}
 .empty{padding:48px;text-align:center;color:var(--ink-soft);font-weight:500}
 footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
