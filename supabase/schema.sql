@@ -16,6 +16,7 @@ create table if not exists tenants (
   phone text not null default '' check (char_length(phone) <= 20),
   contract_start text not null default '',
   contract_end text not null default '',
+  prev_contract_end text not null default '', -- Added for contract extension rollbacks
   pay_start_raw text not null default '',
   amt3 numeric check (amt3 is null or (amt3 >= 0 and amt3 <= 10000000)),
   amt6 numeric check (amt6 is null or (amt6 >= 0 and amt6 <= 10000000)),
@@ -56,6 +57,9 @@ alter table tenants
 
 alter table tenants
   add column if not exists moved_out_at text not null default '';
+
+alter table tenants
+  add column if not exists prev_contract_end text not null default '';
 
 -- ---------------------------------------------------------------------------
 -- 2. Row Level Security
@@ -254,6 +258,6 @@ end $$;
 
 -- ---------------------------------------------------------------------------
 -- 6. Tell Supabase's API to reload the table structure, so new columns
---    (like status) are visible immediately instead of "schema cache" errors.
+--    (like prev_contract_end) are visible immediately instead of "schema cache" errors.
 -- ---------------------------------------------------------------------------
 notify pgrst, 'reload schema';

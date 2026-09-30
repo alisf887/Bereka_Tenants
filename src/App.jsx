@@ -46,6 +46,7 @@ function useTenants() {
         status: t.status || "active",
         contractStart: t.contract_start,
         contractEnd: t.contract_end,
+        prevContractEnd: t.prev_contract_end,
         payStartRaw: t.pay_start_raw,
         amt3: t.amt3 == null ? null : Number(t.amt3),
         amt6: t.amt6 == null ? null : Number(t.amt6),
@@ -200,7 +201,10 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     set("contractEnd", updatedEnd);
     
     const { error } = await supabase.from("tenants")
-      .update({ contract_end: updatedEnd })
+      .update({ 
+        contract_end: updatedEnd,
+        prev_contract_end: currentEnd 
+      })
       .eq("id", t.id);
       
     setBusy(false);
@@ -208,6 +212,32 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       onFlash(errText(error), false);
     } else {
       onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል! (አዲስ ቀን: ${updatedEnd})`, true, t.id);
+      onSaved();
+    }
+  }
+
+  // --- Revert Last Contract Change ---
+  async function revertContract() {
+    if (!t.prevContractEnd) {
+      onFlash("ሊሰረዝ የሚችል የቅድመ ውል ማስተካከያ የለም።", false);
+      return;
+    }
+    setBusy(true);
+    const restoredEnd = t.prevContractEnd;
+    set("contractEnd", restoredEnd);
+
+    const { error } = await supabase.from("tenants")
+      .update({ 
+        contract_end: restoredEnd,
+        prev_contract_end: null 
+      })
+      .eq("id", t.id);
+
+    setBusy(false);
+    if (error) {
+      onFlash(errText(error), false);
+    } else {
+      onFlash("የመጨረሻው ውል ተሰርዟል፤ ውሉ ወደ ነበረበት ተመልሷል።", false);
       onSaved();
     }
   }
@@ -376,7 +406,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
               <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
             </div>
 
-            {/* --- CONTRACT EXTENSION BUTTONS --- */}
+            {/* --- CONTRACT EXTENSION & REVERT BUTTONS --- */}
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(6)}>
                 📅 የስድስት ወር ውል
@@ -385,6 +415,9 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
                 📅 የአንድ አመት ውል
               </button>
             </div>
+            <button className="btn" style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #f87171" }} disabled={busy || !t.prevContractEnd} onClick={revertContract}>
+              🗑️ የመጨረሻውን ውል ሰርዝ
+            </button>
             {/* ---------------------------------- */}
 
             {t.status !== "moved_out" && (
