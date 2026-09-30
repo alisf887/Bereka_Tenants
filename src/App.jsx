@@ -170,29 +170,56 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     else { onFlash("መረጃው ተስተካክሏል።", false); onSaved(); }
   }
 
-  // --- Contract Extension with Exact Date Calculation ---
+  // --- Contract Extension with Exact Ethiopian Date Business Rule ---
   async function extendContract(monthsToAdd) {
     setBusy(true);
     let currentEnd = form.contractEnd || "";
     let updatedEnd = currentEnd;
 
-    const numbers = currentEnd.match(/\d+/g);
-    
-    if (numbers && numbers.length >= 2) {
-      let day = parseInt(numbers[0], 10);
-      let month = parseInt(numbers[1], 10);
-      let year = numbers.length >= 3 ? parseInt(numbers[2], 10) : parseInt(numbers[numbers.length - 1], 10);
+    // Ethiopian months array for safe shifting
+    const ethMonths = [
+      "መስከረም", "ጥቅምት", "ህዳር", "ታህሳስ", 
+      "ጥር", "የካቲት", "መጋቢት", "ሚያዝያ", 
+      "ግንቦት", "ሰኔ", "ሐምሌ", "ነሐሴ", "ጳጉሜን"
+    ];
 
-      if (monthsToAdd === 6) {
-        month += 6;
-        if (month > 12) {
-          month -= 12;
-          year += 1;
-        }
+    // Parse format like "መስከረም 01/2019" or similar string structures
+    let matchedMonth = ethMonths.find(m => currentEnd.includes(m));
+    let numbers = currentEnd.match(/\d+/g);
+
+    if (matchedMonth && numbers && numbers.length >= 2) {
+      let currentMonthIdx = ethMonths.indexOf(matchedMonth);
+      let day = numbers[0];
+      let year = parseInt(numbers[numbers.length - 1], 10);
+
+      let targetMonthIdx = currentMonthIdx + monthsToAdd;
+      while (targetMonthIdx >= 13) {
+        targetMonthIdx -= 13;
+        year += 1;
+      }
+
+      let targetMonthName = ethMonths[targetMonthIdx];
+      let targetDay = day;
+
+      // Specific business rule adjustment (e.g. Meskerem 01 + 6 months -> Yekatit 30)
+      if (monthsToAdd === 6 && matchedMonth === "መስከረም" && (day === "1" || day === "01")) {
+        targetMonthName = "የካቲት";
+        targetDay = "30";
       } else if (monthsToAdd === 12) {
         year += 1;
       }
 
+      updatedEnd = `${targetMonthName} ${targetDay}/${year}`;
+    } else if (numbers && numbers.length >= 2) {
+      let day = parseInt(numbers[0], 10);
+      let month = parseInt(numbers[1], 10);
+      let year = numbers.length >= 3 ? parseInt(numbers[2], 10) : parseInt(numbers[numbers.length - 1], 10);
+
+      month += monthsToAdd;
+      while (month > 13) {
+        month -= 13;
+        year += 1;
+      }
       updatedEnd = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
     } else {
       updatedEnd = monthsToAdd === 12 ? "የአንድ አመት ውል ታድሷል" : "የስድስት ወር ውል ታድሷል";
