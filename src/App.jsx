@@ -267,13 +267,12 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       return;
     }
     setBusy(true);
-    // ተከራዩ ሲወጣ ክፍያው እንዲጸዳ (Clear/Paid እንዲሆን) የ pay_end ቀኑን ወደፊት (ለምሳሌ አመት 2100) እናደርገዋለን 
-    // ወይም ክፍያዎቹን ዜሮ/null እናደርጋለን። በዚህ መልኩ 'ያልተከፈለ' (Late) በሚለው ስታቲስቲክስ ውስጥ አይጠቃለልም።
+    // ተከራዩ ሲወጣ የወጣበት ቀን ይመዘገባል፣ ክፍያውም ወደ ዜሮ (Clear) ይደረጋል
     const { error } = await supabase.from("tenants").update({
       status: "moved_out",
       checkout_date: checkoutDateInput.trim(),
       room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ",
-      pay_end_y: 2100, // ክፍያ እንዳይጠየቅ የክፍያ ማብቂያውን ገደብ ወደፊት እናደርገዋለን
+      pay_end_y: 2100, 
       pay_end_m: 1,
       pay_end_d: 1,
       amt3: 0,
