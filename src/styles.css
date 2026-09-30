@@ -341,3 +341,10 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   .receipt-outer{padding:0}
   #receipt.receipt-paper{padding:0;box-shadow:none}
 }
+/* Custom Floor Button Colors matching Picture 2 Reference */
+.floor-tab-btn.floor-gf { background-color: #1e3a8a !important; color: #ffffff !important; }
+.floor-tab-btn.floor-1f { background-color: #065f46 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-2f { background-color: #047857 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-3f { background-color: #6b21a8 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-5f { background-color: #b45309 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-store { background-color: #78350f !important; color: #ffffff !important; }
