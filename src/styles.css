@@ -108,7 +108,6 @@ input:focus-visible,select:focus-visible{outline:none;border-color:var(--accent)
 
 /* ---------- TABLE ---------- */
 .tablecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto}
-/* scoped to .tablecard so the receipt's own <table> is not affected */
 .tablecard table{border-collapse:collapse;width:100%;min-width:960px}
 .tablecard th,.tablecard td{padding:13px 16px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle}
 .tablecard th{font-size:16px;color:var(--ink-soft);font-weight:600;background:var(--panel-2);position:sticky;top:0;z-index:1;
@@ -149,33 +148,37 @@ tr.row:hover td{background:var(--panel-2)}
 .muted{color:var(--ink-soft)}
 .small{font-size:12px}
 
-/* ---------- ERROR MESSAGE (was missing) ---------- */
 .err{
   background:var(--late-bg);color:var(--late);border:1px solid var(--late);
   border-radius:8px;padding:10px 12px;font-size:13px;font-weight:500;margin:12px 0;
 }
 
-/* ---------- DRAWER / TOAST ---------- */
+/* ---------- DRAWER / MODAL CENTERED ---------- */
 .scrim{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(2px);z-index:40;animation:fade-in .15s ease}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
-.drawer{position:fixed;top:0;left:0;height:100%;width:min(460px,100%);background:var(--panel);
-  border-right:1px solid var(--line);z-index:50;overflow-y:auto;padding:24px 24px calc(24px + env(safe-area-inset-bottom));
-  box-shadow:var(--shadow-lg)}
-@media (prefers-reduced-motion:no-preference){
-  .drawer{animation:slide-in .25s cubic-bezier(0.16, 1, 0.3, 1)}
-  @keyframes slide-in{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-}
-/* Login opens as a centered card instead of the side drawer */
-.drawer.drawer-login{
-  top:50%;left:50%;height:auto;max-height:90vh;
-  width:min(420px,calc(100% - 32px));
+
+/* Updated drawer to center nicely on screen instead of being pinned to the left */
+.drawer{
+  position:fixed;
+  top:50%; left:50%;
   transform:translate(-50%,-50%);
-  border:1px solid var(--line);border-radius:14px;
-  padding:32px 28px;
+  height:auto; max-height:90vh;
+  width:min(520px,calc(100% - 32px));
+  background:var(--panel);
+  border:1px solid var(--line); border-radius:14px;
+  z-index:50; overflow-y:auto;
+  padding:32px 28px calc(28px + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow-lg);
 }
 @media (prefers-reduced-motion:no-preference){
-  .drawer.drawer-login{animation:login-pop .22s cubic-bezier(0.16, 1, 0.3, 1)}
-  @keyframes login-pop{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
+  .drawer{animation:drawer-pop .22s cubic-bezier(0.16, 1, 0.3, 1)}
+  @keyframes drawer-pop{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
+}
+
+/* Login opens as a centered card */
+.drawer.drawer-login{
+  width:min(420px,calc(100% - 32px));
+  padding:32px 28px;
 }
 .drawer h2{margin:0 36px 4px 0;font-size:18px;font-weight:700;letter-spacing:-.01em}
 .drawer .close{
@@ -209,7 +212,6 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   .stat.accent{grid-column:1 / -1}
   .stat b{font-size:18px}
 
-  /* 16px inputs stop iOS Safari from zooming on focus */
   input[type=search],input[type=text],input[type=number],input[type=email],input[type=password],input:not([type]),select{
     font-size:16px;
   }
@@ -229,14 +231,13 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   .tablecard td.name::before{content:none}
   .tablecard td.name .link{text-align:left}
   .tablecard td:last-child{border-bottom:none}
-  /* only the payment-button cell has no data-label, so only it loses the label */
   .tablecard td:not([data-label]){padding-top:14px}
   .tablecard td:not([data-label])::before{content:none}
   .pay{width:100%;gap:8px}
   .paybtn{flex:1;justify-content:center;min-height:44px;font-size:13.5px}
   .tab{min-height:36px}
   .search{width:100%;flex-basis:100%}
-  .drawer{width:100%}
+  .drawer{width:calc(100% - 24px);max-height:92vh}
   .drawer-actions .paybtn,.drawer-actions .btn{min-height:44px}
   .toast{bottom:calc(16px + env(safe-area-inset-bottom));width:calc(100% - 24px);justify-content:space-between}
 }
@@ -245,7 +246,7 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   .tablecard table{min-width:860px}
 }
 
-/* ---------- LOGIN (shown inside the drawer) ---------- */
+/* ---------- LOGIN ---------- */
 .loginwrap{
   display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;
   background:
@@ -258,7 +259,6 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   box-shadow:0 4px 6px -1px rgba(15,23,42,0.08), 0 20px 25px -5px rgba(15,23,42,0.1);
   padding:36px 32px;width:min(400px,92vw);
 }
-/* inside the drawer: drop the full-page backdrop and card chrome */
 .drawer .loginwrap{min-height:0;padding:0;background:none;display:block}
 .drawer .loginbox{width:100%;border:none;box-shadow:none;padding:8px 0;background:transparent;animation:none}
 @media (prefers-reduced-motion:no-preference){
@@ -291,14 +291,12 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   position:relative;background:var(--panel);border-radius:12px;box-shadow:var(--shadow-lg);
   max-width:680px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid var(--line);
 }
-/* Close button inside the receipt modal (ReceiptModal.jsx) */
 .receipt-modal > .close{
   position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;padding:0;
   display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:15px;line-height:1;
   background:var(--panel-2);color:var(--ink-soft);
 }
 .receipt-modal > .close:hover{background:var(--line);color:var(--ink)}
-/* keep the action buttons clear of the close button */
 .receipt-modal .receipt-actions{margin-right:30px}
 @media print{
   .no-print{display:none !important}
