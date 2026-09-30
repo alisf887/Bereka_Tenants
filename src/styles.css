@@ -366,3 +366,24 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   color: #065f46 !important;
   border: 1px solid #34d399 !important;
 }
+/* Unique Professional Colors for Status Filter Buttons (ያልተከፈለ፣ ሊያልቅ የቀረበ፣ የተከፈለ) */
+.status-filter-btn.status-late-btn[aria-pressed="true"], 
+.status-filter-btn.status-late-btn:hover {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #f87171 !important;
+}
+
+.status-filter-btn.status-soon-btn[aria-pressed="true"], 
+.status-filter-btn.status-soon-btn:hover {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+.status-filter-btn.status-paid-btn[aria-pressed="true"], 
+.status-filter-btn.status-paid-btn:hover {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
+}

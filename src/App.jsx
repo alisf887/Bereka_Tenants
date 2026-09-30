@@ -614,9 +614,7 @@ export default function App() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
-  // --- Monthly VAT Report CSV Generator as Requested ---
   async function generateMonthlyReportCsv() {
-    // Fetch all payments and join with tenants to get names
     const { data: payments, error } = await supabase
       .from("payments")
       .select("*, tenants(name)")
@@ -635,8 +633,6 @@ export default function App() {
       const dateStr = new Date(p.recorded_at).toLocaleDateString();
       const totalAfterVat = Number(p.amount || 0);
       
-      // Calculations: Total after VAT = Unit Price * 1.15 (assuming 15% VAT standard or calculated backwards)
-      // Let's compute exact breakdown: Unit Price before VAT = Total / 1.15, VAT = Total - Unit Price
       const unitPriceBeforeVat = Math.round((totalAfterVat / 1.15) * 100) / 100;
       const vatAmount = Math.round((totalAfterVat - unitPriceBeforeVat) * 100) / 100;
 
@@ -732,7 +728,6 @@ export default function App() {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-            {/* --- Floor filter buttons with distinct colors as requested in item 1 --- */}
             <div className="tabs floor-tabs-container">
               {floors.map((f) => {
                 let cls = "tab floor-tab-btn";
@@ -753,13 +748,20 @@ export default function App() {
             </div>
 
             {filters.viewMode === "active" && (
-              <div className="tabs">
-                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
-                  <button key={k} className="tab" aria-pressed={filters.status === k}
-                    onClick={() => setFilters((s) => ({ ...s, status: k }))}>
-                    {label}
-                  </button>
-                ))}
+              <div className="tabs status-tabs-container" style={{ display: "flex", gap: 6 }}>
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => {
+                  let cls = "tab status-filter-btn";
+                  if (k === "late") cls += " status-late-btn";
+                  else if (k === "soon") cls += " status-soon-btn";
+                  else if (k === "paid") cls += " status-paid-btn";
+
+                  return (
+                    <button key={k} className={cls} aria-pressed={filters.status === k}
+                      onClick={() => setFilters((s) => ({ ...s, status: k }))}>
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -849,7 +851,6 @@ export default function App() {
         </>
       )}
 
-      {/* --- Report Modal Dialog --- */}
       {showReportModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div style={{ background: "var(--panel)", padding: 24, borderRadius: 12, width: 400, maxWidth: "90%", border: "1px solid var(--border)" }}>
