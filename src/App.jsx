@@ -135,7 +135,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           amt3: "", amt6: "", y: todayEth().y, m: todayEth().m, d: todayEth().d }
       : { name: t.name, floor: t.floor, room: t.room, phone: t.phone,
           contractStart: t.contractStart, contractEnd: t.contractEnd, payStartRaw: t.payStartRaw,
-          checkoutDate: t.checkoutDate || "",
+          checkoutDate: t.checkoutDate || "መስከረም 16/2019",
           amt3: t.amt3 ?? "", amt6: t.amt6 ?? "",
           y: t.payEnd?.y ?? todayEth().y, m: t.payEnd?.m ?? todayEth().m, d: t.payEnd?.d ?? todayEth().d }
   );
