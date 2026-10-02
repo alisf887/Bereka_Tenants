@@ -33,23 +33,27 @@ function useTenants() {
     const byTenant = {};
     for (const p of pRows) (byTenant[p.tenant_id] ??= []).push(p);
     
-    const merged = tRows.map((t) => ({
-      id: t.id,
-      name: t.name,
-      room: t.room,
-      floor: t.floor,
-      phone: t.phone,
-      status: t.status || "active",
-      contractStart: t.contract_start,
-      contractEnd: t.contract_end,
-      prevContractEnd: t.prev_contract_end,
-      payStartRaw: t.pay_start_raw,
-      checkoutDate: t.checkout_date || null,
-      amt3: t.amt3 == null ? null : Number(t.amt3),
-      amt6: t.amt6 == null ? null : Number(t.amt6),
-      payEnd: t.pay_end_y == null ? null : { y: t.pay_end_y, m: t.pay_end_m, d: t.pay_end_d },
-      payments: byTenant[t.id] || [],
-    })); 
+    const merged = tRows.map((t) => {
+      let floor = t.floor;
+      let room = t.room;
+
+      return {
+        id: t.id,
+        name: t.name,
+        room: room,
+        floor: floor,
+        phone: t.phone,
+        status: t.status || "active",
+        contractStart: t.contract_start,
+        contractEnd: t.contract_end,
+        prevContractEnd: t.prev_contract_end || null,
+        payStartRaw: t.pay_start_raw,
+        amt3: t.amt3 == null ? null : Number(t.amt3),
+        amt6: t.amt6 == null ? null : Number(t.amt6),
+        payEnd: t.pay_end_y == null ? null : { y: t.pay_end_y, m: t.pay_end_m, d: t.pay_end_d },
+        payments: byTenant[t.id] || [],
+      };
+    }); 
     setTenants(merged);
     setError(null);
     setLoading(false);
@@ -69,31 +73,32 @@ function useTenants() {
 }
 
 // ----------------------------------------------------------------------
-// Login Component
+// Login Component (Username & Password)
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) setError("የተሳሳተ ኢሜይል ወይም የይለፍ ቃል።");
-    else onDone();
-  }
+    
+    // Map custom username to internal email domain structure
+    const formattedEmail = `${username.toLowerCase().trim()}@berekabuilding.internal`;
 
-  async function forgotPassword() {
-    if (!email) { setError("መጀመሪያ ኢሜይልዎን ያስገቡ።"); return; }
-    setBusy(true); setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.signInWithPassword({ 
+      email: formattedEmail, 
+      password 
+    });
+    
     setBusy(false);
-    if (error) setError(error.message);
-    else setResetSent(true);
+    if (error) {
+      setError("የተሳሳተ መግቢያ ስም ወይም የይለፍ ቃል አሉ።");
+    } else {
+      onDone();
+    }
   }
 
   return (
@@ -101,22 +106,33 @@ function Login({ onDone }) {
       <form className="loginbox" onSubmit={submit} noValidate>
         <div className="login-mark" aria-hidden="true">🏢</div>
         <h1>በረካ ህንፃ</h1>
-        <p className="sub">የተከራዮች መዝገብ ለማስተዳደር ግባ</p>
-        <label htmlFor="email">ኢሜይል</label>
-        <input id="email" type="email" autoComplete="username" required autoFocus
-          value={email} onChange={(e) => { setEmail(e.target.value); setResetSent(false); }} />
-        <label htmlFor="password">የይለፍ ቃል</label>
-        <input id="password" type="password" autoComplete="current-password" required
-          value={password} onChange={(e) => setPassword(e.target.value)} />
+        <p className="sub">ለመቀጠል መግቢያ ስምዎን እና የይለፍ ቃል ያስገቡ</p>
+        
+        <label htmlFor="username">መግቢያ ስም (Username)</label>
+        <input 
+          id="username" 
+          type="text" 
+          autoComplete="username" 
+          required 
+          autoFocus
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+        />
+        
+        <label htmlFor="password">የይለፍ ቃል (Password)</label>
+        <input 
+          id="password" 
+          type="password" 
+          autoComplete="current-password" 
+          required
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+        />
+        
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "..." : "ግባ"} 
+          {busy ? "..." : "ግባ (Login)"} 
         </button>
-        <button type="button" className="forgot" disabled={busy} onClick={forgotPassword}>
-          የይለፍ ቃል ረሳህ?
-        </button>
-        {resetSent && (
-          <div className="hint" role="status">የመልሶ ማስጀመሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል።</div>
-        )}
+
         {error && <div className="err" role="alert">{error}</div>}
       </form>
     </div>
@@ -135,13 +151,12 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           amt3: "", amt6: "", y: todayEth().y, m: todayEth().m, d: todayEth().d }
       : { name: t.name, floor: t.floor, room: t.room, phone: t.phone,
           contractStart: t.contractStart, contractEnd: t.contractEnd, payStartRaw: t.payStartRaw,
-          checkoutDate: t.checkoutDate || "መስከረም 16/2019",
           amt3: t.amt3 ?? "", amt6: t.amt6 ?? "",
           y: t.payEnd?.y ?? todayEth().y, m: t.payEnd?.m ?? todayEth().m, d: t.payEnd?.d ?? todayEth().d }
   );
   const [busy, setBusy] = useState(false);
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
-  const [checkoutDateInput, setCheckoutDateInput] = useState(t?.checkoutDate || "መስከረም 16/2019");
+  const [checkoutDate, setCheckoutDate] = useState("");
   const firstFieldRef = useRef(null);
   
   useEffect(() => { firstFieldRef.current?.focus(); }, []);
@@ -169,64 +184,10 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 
   async function extendContract(monthsToAdd) {
     setBusy(true);
-    let currentEnd = form.contractEnd || "";
-    let updatedEnd = currentEnd;
-
-    const ethMonths = [
-      "መስከረም", "ጥቅምት", "ህዳር", "ታህሳስ", 
-      "ጥር", "የካቲት", "መጋቢት", "ሚያዝያ", 
-      "ግንቦት", "ሰኔ", "ሐምሌ", "ነሐሴ", "ጳጉሜን"
-    ];
-
-    let matchedMonth = ethMonths.find(m => currentEnd.includes(m));
-    let numbers = currentEnd.match(/\d+/g);
-
-    if (matchedMonth && numbers && numbers.length >= 2) {
-      let currentMonthIdx = ethMonths.indexOf(matchedMonth);
-      let day = numbers[0];
-      let year = parseInt(numbers[numbers.length - 1], 10);
-
-      let targetMonthIdx = currentMonthIdx + monthsToAdd;
-      while (targetMonthIdx >= 13) {
-        targetMonthIdx -= 13;
-        year += 1;
-      }
-
-      let targetMonthName = ethMonths[targetMonthIdx];
-      let targetDay = day;
-
-      if (monthsToAdd === 6 && matchedMonth === "መስከረም" && (day === "1" || day === "01")) {
-        targetMonthName = "የካቲት";
-        targetDay = "30";
-      } else if (monthsToAdd === 12) {
-        year += 1;
-      }
-
-      updatedEnd = `${targetMonthName} ${targetDay}/${year}`;
-    } else if (numbers && numbers.length >= 2) {
-      let day = parseInt(numbers[0], 10);
-      let month = parseInt(numbers[1], 10);
-      let year = numbers.length >= 3 ? parseInt(numbers[2], 10) : parseInt(numbers[numbers.length - 1], 10);
-
-      month += monthsToAdd;
-      while (month > 13) {
-        month -= 13;
-        year += 1;
-      }
-      updatedEnd = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-    } else {
-      updatedEnd = monthsToAdd === 12 ? "የአንድ አመት ውል ታድሷል" : "የስድስት ወር ውል ታድሷል";
-    }
-
-    set("contractEnd", updatedEnd);
-    
-    const { error } = await supabase.from("tenants")
-      .update({ 
-        contract_end: updatedEnd,
-        prev_contract_end: currentEnd 
-      })
-      .eq("id", t.id);
-      
+    const { data, error } = await supabase.rpc("extend_tenant_contract", { 
+      p_tenant_id: t.id, 
+      p_months: monthsToAdd 
+    });
     setBusy(false);
     if (error) {
       onFlash(errText(error), false);
@@ -237,53 +198,29 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   }
 
   async function revertContract() {
-    if (!t.prevContractEnd) {
-      onFlash("ሊሰረዝ የሚችል የቅድመ ውል ማስተካከያ የለም።", false);
-      return;
-    }
     setBusy(true);
-    const restoredEnd = t.prevContractEnd;
-    set("contractEnd", restoredEnd);
-
-    const { error } = await supabase.from("tenants")
-      .update({ 
-        contract_end: restoredEnd,
-        prev_contract_end: null 
-      })
-      .eq("id", t.id);
-
+    const { error } = await supabase.rpc("revert_tenant_contract", { p_tenant_id: t.id });
     setBusy(false);
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash("የመጨረሻው ውል ተሰርዟል፤ ውሉ ወደ ነበረበት ተመልሷል።", false);
+      onFlash("ውሉ ወደ ነበረበት ተመልሷል።", false);
       onSaved();
     }
   }
 
   async function handleMoveOut() {
-    if (!checkoutDateInput.trim()) {
-      onFlash("እባክዎ የሚወጡበትን ቀን ያስገቡ።", false);
-      return;
-    }
     setBusy(true);
     const { error } = await supabase.from("tenants").update({
       status: "moved_out",
-      checkout_date: checkoutDateInput.trim(),
-      room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ",
-      pay_end_y: 2100, 
-      pay_end_m: 1,
-      pay_end_d: 1,
-      amt3: 0,
-      amt6: 0
+      room: t.room ? `${t.room} (ባዶ/ነጻ)` : "ባዶ/ነጻ"
     }).eq("id", t.id);
-    
     setBusy(false);
     setShowMoveOutModal(false);
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። ክፍያው ተሰርዟል (ቀን: ${checkoutDateInput})`, false);
+      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። (ክፍሉ ነጻ ሆኗል)`, false);
       onSaved();
       onClose();
     }
@@ -299,6 +236,26 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     setBusy(false);
     if (error) onFlash(errText(error), false);
     else { onFlash("ቀኑ ተስተካክሏል።", false); onSaved(); }
+  }
+
+  async function recordPayment(cycle) {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: t.id, p_cycle: cycle });
+    setBusy(false);
+    if (error) onFlash(errText(error), false);
+    else {
+      onFlash(`${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, t.id);
+      onSaved();
+      onPaid(t);
+    }
+  }
+
+  async function revertLast() {
+    setBusy(true);
+    const { error } = await supabase.rpc("revert_last_payment", { p_tenant_id: t.id });
+    setBusy(false);
+    if (error) onFlash(errText(error), false);
+    else { onFlash("የመጨረሻው ክፍያ ተሰርዟል።", false); onSaved(); }
   }
 
   async function createTenant() {
@@ -349,7 +306,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
         <div className="field"><label htmlFor="nPhone">ስልክ</label>
           <input id="nPhone" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
         <div className="field"><label htmlFor="nCStart">ውል የጀመረበት</label>
-          <input id="nCStart" placeholder="ለምሳሌ፦ መስከረም 01/2018" value={form.contractStart} onChange={(e) => set("contractStart", e.target.value)} /></div>
+          <input id="nCStart" placeholder="ለምሳሌ፦ መስከረም 01/2019" value={form.contractStart} onChange={(e) => set("contractStart", e.target.value)} /></div>
         <div className="field"><label htmlFor="nCEnd">ውል የሚያበቃበት</label>
           <input id="nCEnd" value={form.contractEnd} onChange={(e) => set("contractEnd", e.target.value)} /></div>
         <div className="field"><label htmlFor="nAmt3">ክፍያ (3 ወር)</label>
@@ -375,11 +332,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       <div className="sub">{t.room || "—"} · {t.floor} · {t.phone ? "0" + t.phone : "ስልክ የለም"}</div>
       <p>
         <span className={`pill ${s.cls}`}>{s.label}</span>
-        {t.status === "moved_out" && (
-          <span className="pill" style={{ background: "#fee2e2", color: "#991b1b", marginLeft: 6 }}>
-            ወጥቷል (የወጣበት ቀን: {t.checkoutDate || "—"})
-          </span>
-        )}
+        {t.status === "moved_out" && <span className="pill" style={{ background: "#fee2e2", color: "#991b1b", marginLeft: 6 }}>ወጥቷል (Moved Out)</span>}
       </p>
 
       {owner ? (
@@ -416,8 +369,8 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 
           <div className="pay drawer-actions" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="paybtn" disabled={busy} onClick={() => recordPaymentDirect(3, t, onFlash, onSaved, onPaid)}>3 ወር ተከፈለ</button>
-              <button className="paybtn" disabled={busy} onClick={() => recordPaymentDirect(6, t, onFlash, onSaved, onPaid)}>6 ወር ተከፈለ</button>
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
@@ -428,9 +381,11 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
                 📅 የአንድ አመት ውል
               </button>
             </div>
-            <button className="btn" style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #f87171" }} disabled={busy || !t.prevContractEnd} onClick={revertContract}>
-              🗑️ የመጨረሻውን ውል ሰርዝ
-            </button>
+            {t.prevContractEnd && (
+              <button className="btn" style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #f87171" }} disabled={busy} onClick={revertContract}>
+                ↩ የመጨረሻውን ውል ሰርዝ
+              </button>
+            )}
 
             {t.status !== "moved_out" && (
               <button className="btn" style={{ background: "#ef4444", color: "#fff", border: "none" }} disabled={busy} onClick={() => setShowMoveOutModal(true)}>
@@ -438,7 +393,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
               </button>
             )}
             {t.payments.length > 0 && (
-              <button className="btn" disabled={busy} onClick={() => revertLastPayment(t, onFlash, onSaved)}>የመጨረሻውን ክፍያ ሰርዝ</button>
+              <button className="btn" disabled={busy} onClick={revertLast}>የመጨረሻውን ክፍያ ሰርዝ</button>
             )}
           </div>
         </>
@@ -455,8 +410,8 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
         <div style={{ background: "var(--bg-secondary)", padding: 12, borderRadius: 8, marginTop: 12, border: "1px solid var(--border)" }}>
           <h4 style={{ margin: "0 0 8px 0", color: "var(--late)" }}>ተከራይ ውል አቋርጦ መውጣቱን ያረጋግጡ</h4>
           <div className="field">
-            <label>የወጡበት ቀን (የኢትዮጵያ አቆጣጠር) *</label>
-            <input placeholder="ለምሳሌ፦ መስከረም 16/2019" value={checkoutDateInput} onChange={(e) => setCheckoutDateInput(e.target.value)} />
+            <label>የወጡበት ቀን (የኢትዮጵያ አቆጣጠር)</label>
+            <input placeholder="ለምሳሌ፦ መጋቢት 12/2019" value={checkoutDate} onChange={(e) => setCheckoutDate(e.target.value)} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button className="btn btn-primary" disabled={busy} onClick={handleMoveOut}>አዎ፣ ውል ጨርሶ ወጥቷል</button>
@@ -494,41 +449,47 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   );
 }
 
-async function recordPaymentDirect(cycle, tenant, onFlash, onSaved, onPaid) {
-  const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: tenant.id, p_cycle: cycle });
-  if (error) onFlash(errText(error), false);
-  else {
-    onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል።`, true, tenant.id);
-    onSaved();
-    onPaid(tenant);
-  }
-}
-
-async function revertLastPayment(tenant, onFlash, onSaved) {
-  const { error } = await supabase.rpc("revert_last_payment", { p_tenant_id: tenant.id });
-  if (error) onFlash(errText(error), false);
-  else { onFlash("የመጨረሻው ክፍያ ተሰርዟል።", false); onSaved(); }
-}
-
 // ----------------------------------------------------------------------
 // Main App Component
 // ----------------------------------------------------------------------
 export default function App() {
   const [session, setSession] = useState(undefined);
+  const [userRole, setUserRole] = useState("viewer");
   const { tenants, loading, error, reload } = useTenants();
   const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
   const [drawer, setDrawer] = useState(null);
   const [toast, setToast] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [theme, setTheme] = useState("auto");
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportStart, setReportStart] = useState("መስከረም 01/2019");
-  const [reportEnd, setReportEnd] = useState("መስከረም 30/2019");
   const toastTimer = useRef(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    supabase.auth.getSession().then(async ({ data }) => {
+      setSession(data.session);
+      if (data.session) {
+        // Fetch role from app_users table
+        const { data: profile } = await supabase
+          .from("app_users")
+          .select("role")
+          .eq("id", data.session.user.id)
+          .single();
+        if (profile) setUserRole(profile.role);
+      }
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+      setSession(s);
+      if (s) {
+        const { data: profile } = await supabase
+          .from("app_users")
+          .select("role")
+          .eq("id", s.user.id)
+          .single();
+        if (profile) setUserRole(profile.role);
+      } else {
+        setUserRole("viewer");
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -538,7 +499,8 @@ export default function App() {
     else el.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const owner = !!session;
+  // Owner is true only if logged in AND role is 'owner'
+  const owner = !!session && userRole === "owner";
 
   function flash(msg, undoable, tenantId) {
     setToast({ msg, undoable, tenantId });
@@ -620,48 +582,6 @@ export default function App() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
-  async function generateMonthlyReportCsv() {
-    const { data: payments, error } = await supabase
-      .from("payments")
-      .select("*, tenants(name)")
-      .order("recorded_at", { ascending: true });
-
-    if (error) {
-      flash("ሪፖርት ማዘጋጀት አልተቻለም፦ " + errText(error), false);
-      return;
-    }
-
-    const head = ["name", "date", "unit price(before vat)", "total price(before vat)", "vat", "total (after vat)"];
-    const lines = [head.join(",")];
-
-    for (const p of payments) {
-      const name = p.tenants?.name || "ተከራይ";
-      const dateStr = new Date(p.recorded_at).toLocaleDateString();
-      const totalAfterVat = Number(p.amount || 0);
-      
-      const unitPriceBeforeVat = Math.round((totalAfterVat / 1.15) * 100) / 100;
-      const vatAmount = Math.round((totalAfterVat - unitPriceBeforeVat) * 100) / 100;
-
-      const row = [
-        `"${name.replace(/"/g, '""')}"`,
-        `"${dateStr}"`,
-        unitPriceBeforeVat,
-        unitPriceBeforeVat,
-        vatAmount,
-        totalAfterVat
-      ];
-      lines.push(row.join(","));
-    }
-
-    const csv = "\ufeff" + lines.join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `monthly-revenue-vat-report-${reportStart.replace(/\//g, "-")}.csv`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setShowReportModal(false);
-    flash("የወር ሪፖርት በ CSV ተዘጋጅቶ ወርዷል!", false);
-  }
-
   async function undoToast() {
     if (!toast?.undoable || !toast.tenantId) return;
     const { error } = await supabase.rpc("revert_last_payment", { p_tenant_id: toast.tenantId });
@@ -675,7 +595,13 @@ export default function App() {
   }, [tenants, drawer]);
 
   const today = todayEth();
+
   if (session === undefined) return null;
+
+  // IF NOT LOGGED IN AT ALL, SHOW LOGIN SCREEN FOR EVERYONE (Owners and Viewers)
+  if (!session) {
+    return <Login onDone={() => window.location.reload()} />;
+  }
 
   return (
     <div>
@@ -684,22 +610,19 @@ export default function App() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: "1.5rem" }}>🏢</span>
-              <h1>በረካ ህንፃ — የተከራዮች መዝገብ (Enterprise SaaS)</h1>
+              <h1>በረካ ህንፃ — የተከራዮች መዝገብ</h1>
             </div>
             <div className="sub" style={{ marginTop: 4 }}>
               ዛሬ <b>{fmtEth(today)} ዓ.ም</b> · አጠቃላይ የህንፃ ንብረት እና ተከራዮች አስተዳደር።
               <span className={`pill ${owner ? "ok" : "none"}`} style={{ marginInlineStart: 6 }}>
-                {owner ? "የባለቤት ሁነታ" : "የተመልካች ሁነታ"}
+                {owner ? "የባለቤት ሁነታ (Owner)" : "የተመልካች ሁነታ (Viewer)"}
               </span>
             </div>
           </div>
-          <div className="toolbtns" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="btn" onClick={() => setShowReportModal(true)}>📊 የክፍያ እና VAT ሪፖርት (CSV)</button>
+          <div className="toolbtns">
             <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
             <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
-            {owner
-              ? <button className="btn" onClick={() => supabase.auth.signOut()}>🚪 ውጣ</button>
-              : <button className="btn btn-primary" onClick={() => setDrawer({ mode: "login" })}>🔐 የባለቤት መግቢያ</button>}
+            <button className="btn" onClick={() => supabase.auth.signOut()}>🚪 ውጣ</button>
           </div>
         </header>
 
@@ -734,40 +657,23 @@ export default function App() {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-            <div className="tabs floor-tabs-container">
-              {floors.map((f) => {
-                let cls = "tab floor-tab-btn";
-                if (f === "G-F") cls += " floor-gf";
-                else if (f === "1-F") cls += " floor-1f";
-                else if (f === "2-F") cls += " floor-2f";
-                else if (f === "3-F") cls += " floor-3f";
-                else if (f === "5-F") cls += " floor-5f";
-                else if (f === "store") cls += " floor-store";
-
-                return (
-                  <button key={f} className={cls} aria-pressed={filters.floor === f}
-                    onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
-                    {f === "all" ? "ሁሉም ወለል" : f}
-                  </button>
-                );
-              })}
+            <div className="tabs">
+              {floors.map((f) => (
+                <button key={f} className="tab" aria-pressed={filters.floor === f}
+                  onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
+                  {f === "all" ? "ሁሉም ወለል" : f}
+                </button>
+              ))}
             </div>
 
             {filters.viewMode === "active" && (
-              <div className="tabs status-tabs-container" style={{ display: "flex", gap: 6 }}>
-                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => {
-                  let cls = "tab status-filter-btn";
-                  if (k === "late") cls += " status-late-btn";
-                  else if (k === "soon") cls += " status-soon-btn";
-                  else if (k === "paid") cls += " status-paid-btn";
-
-                  return (
-                    <button key={k} className={cls} aria-pressed={filters.status === k}
-                      onClick={() => setFilters((s) => ({ ...s, status: k }))}>
-                      {label}
-                    </button>
-                  );
-                })}
+              <div className="tabs">
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
+                  <button key={k} className="tab" aria-pressed={filters.status === k}
+                    onClick={() => setFilters((s) => ({ ...s, status: k }))}>
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -799,11 +705,7 @@ export default function App() {
                     <td data-label="ተ.ቁ">{i + 1}</td>
                     <td className="name" data-label="ስም">
                       <button className="link" onClick={() => setDrawer({ mode: "view", tenantId: t.id })}>{t.name}</button>
-                      {t.status === "moved_out" && (
-                        <span style={{ fontSize: "0.75rem", color: "var(--late)", marginLeft: 6 }}>
-                          (ወጥቷል: {t.checkoutDate || "—"})
-                        </span>
-                      )}
+                      {t.status === "moved_out" && <span style={{ fontSize: "0.75rem", color: "var(--late)", marginLeft: 6 }}>(ወጥቷል)</span>}
                     </td>
                     <td data-label="ክፍል">{t.room || "—"}</td>
                     <td data-label="ወለል">{t.floor}</td>
@@ -839,10 +741,9 @@ export default function App() {
       {drawer && (
         <>
           <div className="scrim open" onClick={() => setDrawer(null)} />
-          <aside className={`drawer open${drawer.mode === "login" ? " drawer-login" : ""}`} role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+          <aside className={`drawer open`} role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
             <button className="btn close" aria-label="ዝጋ" onClick={() => setDrawer(null)}>✕</button>
             <div>
-              {drawer.mode === "login" && <Login onDone={() => setDrawer(null)} />}
               {drawer.mode === "add" && (
                 <Drawer mode="add" owner={owner} floors={floors}
                   defaultFloor={filters.floor !== "all" ? filters.floor : floors[1]}
@@ -855,27 +756,6 @@ export default function App() {
             </div>
           </aside>
         </>
-      )}
-
-      {showReportModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "var(--panel)", padding: 24, borderRadius: 12, width: 400, maxWidth: "90%", border: "1px solid var(--border)" }}>
-            <h3>የክፍያ እና የግብር (VAT) ሪፖርት ማውጫ</h3>
-            <p className="sub" style={{ marginBottom: 16 }}>ለተወሰነ የጊዜ ገደብ የተከፈለውን ክፍያ በ CSV ፎርማት ያውርዱ።</p>
-            <div className="field">
-              <label>የሚጀምርበት ቀን</label>
-              <input value={reportStart} onChange={(e) => setReportStart(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>የሚያልቅበት ቀን</label>
-              <input value={reportEnd} onChange={(e) => setReportEnd(e.target.value)} />
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button className="btn btn-primary" onClick={generateMonthlyReportCsv}>CSV ሪፖርት አውርድ</button>
-              <button className="btn" onClick={() => setShowReportModal(false)}>ይቅር</button>
-            </div>
-          </div>
-        </div>
       )}
 
       {toast && (
@@ -901,13 +781,13 @@ function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
     setBusy(false);
     if (error) onFlash(errText(error), false);
     else {
-      onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል።`, true, tenant.id);
+      onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, tenant.id);
       onSaved();
       onPaid(tenant);
     }
   }
   return (
-    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt) : "መጠን አልተመዘገብም"}>
+    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt) : "መጠን አልተመዘገበም"}>
       {cycle} ወር ተከፈለ
     </button>
   );
