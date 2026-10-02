@@ -85,11 +85,11 @@ function Login({ onDone }) {
     e.preventDefault();
     setBusy(true); setError(null);
     
-    // Map custom username to internal email domain structure
-    const formattedEmail = `${username.toLowerCase().trim()}@berekabuilding.internal`;
+    // Directly use the typed email/username without adding a fake domain
+    const emailInput = username.toLowerCase().trim();
 
     const { error } = await supabase.auth.signInWithPassword({ 
-      email: formattedEmail, 
+      email: emailInput, 
       password 
     });
     
@@ -100,7 +100,6 @@ function Login({ onDone }) {
       onDone();
     }
   }
-
   return (
     <div className="loginwrap">
       <form className="loginbox" onSubmit={submit} noValidate>
