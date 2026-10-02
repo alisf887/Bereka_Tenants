@@ -267,7 +267,6 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       return;
     }
     setBusy(true);
-    // ተከራዩ ሲወጣ የወጣበት ቀን ይመዘገባል፣ ክፍያውም ወደ ዜሮ (Clear) ይደረጋል
     const { error } = await supabase.from("tenants").update({
       status: "moved_out",
       checkout_date: checkoutDateInput.trim(),
