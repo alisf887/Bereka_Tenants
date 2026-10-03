@@ -78,6 +78,8 @@ function useTenants() {
         payStartRaw: t.pay_start_raw,
         amt3: t.amt3 == null ? null : Number(t.amt3),
         amt6: t.amt6 == null ? null : Number(t.amt6),
+        prevAmt3: t.prev_amt3 == null ? null : Number(t.prev_amt3),
+        prevAmt6: t.prev_amt6 == null ? null : Number(t.prev_amt6),
         payEnd: t.pay_end_y == null ? null : { y: t.pay_end_y, m: t.pay_end_m, d: t.pay_end_d },
         payments: byTenant[t.id] || [],
       };
@@ -206,6 +208,7 @@ function TenantPortal({ tenants, loading }) {
             <div className="stat"><b style={{ fontSize: 20 }}>{t.contractEnd || "—"}</b><span>ውል የሚያበቃበት</span></div>
             <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(t.payEnd)}</b><span>ክፍያ የሚያበቃበት</span></div>
             <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt3)}</b><span>የ3 ወር ክፍያ</span></div>
+            {t.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt6)}</b><span>የ6 ወር ክፍያ</span></div>}
           </section>
 
           <div className="hist">
@@ -377,6 +380,10 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   );
   const [busy, setBusy] = useState(false);
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
+  const [showIncrease, setShowIncrease] = useState(false);
+  const [inc3, setInc3] = useState("");
+  const [inc6, setInc6] = useState("");
+  const [inc6Touched, setInc6Touched] = useState(false);
   const [checkoutDate, setCheckoutDate] = useState("");
   const firstFieldRef = useRef(null);
   
@@ -444,6 +451,60 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       onFlash("ውሉ ወደ ነበረበት ተመልሷል።", false);
       onSaved();
     }
+  }
+
+  async function applyIncrease() {
+    const add3 = Number(inc3);
+    if (!Number.isFinite(add3) || add3 <= 0) {
+      onFlash("እባክዎ ትክክለኛ የጭማሪ መጠን ያስገቡ (ከ0 በላይ)።", false);
+      return;
+    }
+    if (t.amt3 == null) {
+      onFlash("መጀመሪያ የ3 ወር ክፍያ መጠን ያስገቡ።", false);
+      return;
+    }
+    const newAmt3 = t.amt3 + add3;
+    let newAmt6 = t.amt6;
+    if (t.amt6 != null) {
+      const add6 = Number(inc6);
+      if (!Number.isFinite(add6) || add6 < 0) {
+        onFlash("የ6 ወር ጭማሪ መጠን ትክክል አይደለም።", false);
+        return;
+      }
+      newAmt6 = t.amt6 + add6;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("tenants")
+      .update({ amt3: newAmt3, amt6: newAmt6, prev_amt3: t.amt3, prev_amt6: t.amt6 })
+      .eq("id", t.id);
+    setBusy(false);
+    if (error) {
+      onFlash(errText(error), false);
+      return;
+    }
+    setForm((f) => ({ ...f, amt3: newAmt3, amt6: newAmt6 ?? "" })); // keep the edit form in sync
+    setShowIncrease(false); setInc3(""); setInc6(""); setInc6Touched(false);
+    onFlash(`ኪራይ ጨምሯል፦ ${money(t.amt3)} → ${money(newAmt3)}`, false);
+    onSaved();
+  }
+
+  async function revertIncrease() {
+    if (t.prevAmt3 == null) return;
+    if (!window.confirm(`የመጨረሻው ጭማሪ ይሰረዝ? ክፍያው ወደ ${money(t.prevAmt3)} ይመለሳል።`)) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("tenants")
+      .update({ amt3: t.prevAmt3, amt6: t.prevAmt6, prev_amt3: null, prev_amt6: null })
+      .eq("id", t.id);
+    setBusy(false);
+    if (error) {
+      onFlash(errText(error), false);
+      return;
+    }
+    setForm((f) => ({ ...f, amt3: t.prevAmt3, amt6: t.prevAmt6 ?? "" }));
+    onFlash("ጭማሪው ተሰርዟል፤ ክፍያው ወደ ነበረበት ተመልሷል።", false);
+    onSaved();
   }
 
   async function handleMoveOut() {
@@ -621,6 +682,46 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             {t.prevContractEnd && (
               <button className="btn" style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #f87171" }} disabled={busy} onClick={revertContract}>
                 ↩ የመጨረሻውን ውል ሰርዝ
+              </button>
+            )}
+
+            <button className="btn btn-rent" disabled={busy} onClick={() => setShowIncrease((v) => !v)}>
+              + ኪራይ ጭማሪ
+            </button>
+            {showIncrease && (
+              <div className="inc-box">
+                <div className="field">
+                  <label htmlFor="inc3">የ3 ወር ጭማሪ (ብር)</label>
+                  <input id="inc3" type="number" inputMode="numeric" min="1" autoFocus value={inc3}
+                    onChange={(e) => {
+                      setInc3(e.target.value);
+                      if (!inc6Touched) setInc6(e.target.value === "" ? "" : String(Number(e.target.value) * 2));
+                    }} />
+                </div>
+                {t.amt6 != null && (
+                  <div className="field">
+                    <label htmlFor="inc6">የ6 ወር ጭማሪ (ብር)</label>
+                    <input id="inc6" type="number" inputMode="numeric" min="0" value={inc6}
+                      onChange={(e) => { setInc6(e.target.value); setInc6Touched(true); }} />
+                  </div>
+                )}
+                {Number(inc3) > 0 && t.amt3 != null && (
+                  <p className="inc-preview">
+                    የ3 ወር ክፍያ፦ <b>{money(t.amt3)}</b> → <b>{money(t.amt3 + Number(inc3))}</b>
+                    {t.amt6 != null && Number(inc6) >= 0 && inc6 !== "" && (
+                      <><br />የ6 ወር ክፍያ፦ <b>{money(t.amt6)}</b> → <b>{money(t.amt6 + Number(inc6))}</b></>
+                    )}
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn btn-primary" disabled={busy} onClick={applyIncrease}>አረጋግጥ</button>
+                  <button className="btn" disabled={busy} onClick={() => { setShowIncrease(false); setInc3(""); setInc6(""); setInc6Touched(false); }}>ይቅር</button>
+                </div>
+              </div>
+            )}
+            {t.prevAmt3 != null && (
+              <button className="btn" style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #f87171" }} disabled={busy} onClick={revertIncrease}>
+                ↩ የመጨረሻውን ጭማሪ ሰርዝ
               </button>
             )}
 
