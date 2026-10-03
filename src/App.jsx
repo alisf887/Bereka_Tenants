@@ -678,7 +678,10 @@ export default function App() {
         <section className="stats">
           <div className="stat"><b>{stats.count}</b><span>{filters.viewMode === "archive" ? "የቀድሞ ተከራዮች" : "ንቁ ተከራዮች"}</span></div>
           <div className="stat"><b>{stats.late}</b><span>ያልተከፈለ</span></div>
-          <div className="stat"><b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span></div>
+          {/* ሊያልቅ የቀረበ - ግራጫማ/ብረታማ ቀለም */}
+          <div className="stat" style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+            <b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span>
+          </div>
           <div className="stat"><b>{stats.paid}</b><span>የተከፈለ</span></div>
           <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
@@ -709,12 +712,14 @@ export default function App() {
               {floors.map((f) => {
                 let tabBg = "var(--bg-secondary)";
                 let tabColor = "var(--text)";
-                if (f === "G-F") { tabBg = "#1e3a8a"; tabColor = "#fff"; }
-                else if (f === "1-F") { tabBg = "#065f46"; tabColor = "#fff"; }
-                else if (f === "2-F") { tabBg = "#047857"; tabColor = "#fff"; }
-                else if (f === "3-F") { tabBg = "#6b21a8"; tabColor = "#fff"; }
-                else if (f === "5-F") { tabBg = "#b45309"; tabColor = "#fff"; }
-                else if (f === "store") { tabBg = "#78350f"; tabColor = "#fff"; }
+                
+                // Excel matching custom colors for each floor & store
+                if (f === "G-F") { tabBg = "#374151"; tabColor = "#fff"; }
+                else if (f === "1-F") { tabBg = "#15803d"; tabColor = "#fff"; }
+                else if (f === "2-F") { tabBg = "#4f46e5"; tabColor = "#fff"; }
+                else if (f === "3-F") { tabBg = "#7e22ce"; tabColor = "#fff"; }
+                else if (f === "5-F") { tabBg = "#c2410c"; tabColor = "#fff"; }
+                else if (f === "store") { tabBg = "#6b7280"; tabColor = "#fff"; } // Metallic/Gray for store
 
                 const isActive = filters.floor === f;
 
@@ -742,12 +747,27 @@ export default function App() {
 
             {filters.viewMode === "active" && (
               <div className="tabs">
-                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
-                  <button key={k} className="tab" aria-pressed={filters.status === k}
-                    onClick={() => setFilters((s) => ({ ...s, status: k }))}>
-                    {label}
-                  </button>
-                ))}
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => {
+                  // Make "ሊያልቅ የቀረበ" button use metallic/gray background styling
+                  const isSoonBtn = k === "soon";
+                  const isBtnActive = filters.status === k;
+
+                  return (
+                    <button 
+                      key={k} 
+                      className="tab" 
+                      aria-pressed={isBtnActive}
+                      onClick={() => setFilters((s) => ({ ...s, status: k }))}
+                      style={isSoonBtn ? {
+                        backgroundColor: isBtnActive ? "#4b5563" : "var(--bg-secondary)",
+                        color: isBtnActive ? "#fff" : "var(--text)",
+                        border: isBtnActive ? "2px solid #4b5563" : "1px solid var(--border)"
+                      } : {}}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
