@@ -48,14 +48,14 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
   background:var(--bg); color:var(--ink);
   font-family:"Noto Sans Ethiopic","Inter",system-ui,-apple-system,Segoe UI,sans-serif;
-  font-size:18px; line-height:1.5; font-feature-settings:"tnum" 1;
+  font-size:16.5px; line-height:1.5; font-feature-settings:"tnum" 1;
   -webkit-font-smoothing: antialiased;
 }
 .wrap{max-width:1240px;margin:0 auto;padding:32px 24px calc(72px + env(safe-area-inset-bottom))}
 header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:28px;
   border-bottom:1px solid var(--line);padding-bottom:20px}
-h1{font-size:28px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}
-.sub{color:var(--ink-soft);font-size:14px;margin-top:4px;font-weight:400}
+h1{font-size:26px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-soft);font-size:13px;margin-top:4px;font-weight:400}
 .toolbtns{display:flex;gap:10px;flex-wrap:wrap}
 button{font:inherit;cursor:pointer}
 
@@ -271,7 +271,7 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
 }
 .loginbox h1{font-size:20px;margin:0 0 6px;letter-spacing:-.02em}
 .loginbox p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:13px}
-.loginbox label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin:16px 0 6px}
+.loginbox label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:16px 0 6px}
 .loginbox input{width:100%;display:block;padding:10px 12px}
 .loginbox input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .loginbox .btn-primary{width:100%;margin-top:24px;padding:11px;font-size:14px;border-radius:8px}
@@ -462,4 +462,54 @@ button.tab:nth-child(8), button.tab[data-floor="store"] {
   background-color: #d1fae5 !important;
   color: #065f46 !important;
   border-color: #34d399 !important;
+}
+/* =====================================================================
+   የበረካ ህንፃ — ትክክለኛ የቁልፍ (Buttons) ቀለሞች ማስተካከያ
+   ===================================================================== */
+
+/* 1. ሁሉም ወለል እና 1-F ቀለሞች */
+button.tab:nth-child(1), button.tab[data-floor="all"], button.tab:first-child { 
+  background-color: #475569 !important; 
+  color: #ffffff !important; 
+  border-color: #334155 !important; 
+}
+
+button.tab:nth-child(3), button.tab[data-floor="1-F"] { 
+  background-color: #065f46 !important; 
+  color: #ffffff !important; 
+  border-color: #047857 !important; 
+}
+
+/* 2. ሁሉም ሁኔታ (All Status) ቀለም */
+.status-filter-btn:first-child, button.tab:nth-child(8) {
+  background-color: #475569 !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+/* 3. ያልተከፈለ - ሙሉ በሙሉ ቀይ (Red) እንዲሆን */
+.status-filter-btn.status-late-btn, 
+.status-filter-btn[data-status="late"],
+button.tab:nth-child(9) {
+  background-color: #dc2626 !important; /* ጠንካራ ቀይ ቀለም */
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
+}
+
+/* 4. ሊያልቅ የቀረበ - ልክ እንደ G-F ቀለም (Dark Slate/Grey) እንዲሆን */
+.status-filter-btn.status-soon-btn, 
+.status-filter-btn[data-status="soon"],
+button.tab:nth-child(10) {
+  background-color: #334155 !important; /* G-F የሚጠቀምበት ቀለም */
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+/* 5. የተከፈለ - እንዳለ ይቆይ (Mint Green) */
+.status-filter-btn.status-paid-btn, 
+.status-filter-btn[data-status="paid"],
+button.tab:nth-child(11) {
+  background-color: #0d9488 !important; 
+  color: #ffffff !important; 
+  border-color: #0f766e !important;
 }
