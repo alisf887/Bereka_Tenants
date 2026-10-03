@@ -170,6 +170,68 @@ function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
 }
 
 // ----------------------------------------------------------------------
+// Tenant portal: a tenant sees ONLY their own record.
+// (The database also enforces this with Row Level Security.)
+// ----------------------------------------------------------------------
+function TenantPortal({ tenants, loading }) {
+  const t = tenants[0]; // RLS returns at most this tenant's own row
+  const s = t ? statusOf(t.payEnd) : null;
+
+  return (
+    <div className="wrap">
+      <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
+        <div>
+          <h1>በረካ ህንፃ — የእኔ መረጃ</h1>
+          <div className="sub">ዛሬ <b>{fmtEth(todayEth())} ዓ.ም</b></div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
+        </div>
+      </header>
+
+      {loading ? (
+        <div className="empty">በመጫን ላይ...</div>
+      ) : !t ? (
+        <div className="empty">ከመለያዎ ጋር የተገናኘ የተከራይ መረጃ አልተገኘም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</div>
+      ) : (
+        <>
+          <div className="filterbar" style={{ gap: 10 }}>
+            <h2 style={{ margin: 0 }}>{t.name}</h2>
+            <div className="sub">{t.room || "—"} · {t.floor}{t.phone ? " · 0" + t.phone : ""}</div>
+            <div><span className={`pill ${s.cls}`}>{s.label}</span></div>
+          </div>
+
+          <section className="stats" style={{ marginTop: 16 }}>
+            <div className="stat"><b style={{ fontSize: 20 }}>{t.contractStart || "—"}</b><span>ውል የጀመረበት</span></div>
+            <div className="stat"><b style={{ fontSize: 20 }}>{t.contractEnd || "—"}</b><span>ውል የሚያበቃበት</span></div>
+            <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(t.payEnd)}</b><span>ክፍያ የሚያበቃበት</span></div>
+            <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt3)}</b><span>የ3 ወር ክፍያ</span></div>
+          </section>
+
+          <div className="hist">
+            <h3>የክፍያ ታሪክ</h3>
+            {t.payments.length === 0 ? (
+              <p className="muted small">እስካሁን የተመዘገበ ክፍያ የለም።</p>
+            ) : (
+              <ul>
+                {[...t.payments].reverse().map((p) => (
+                  <li key={p.id}>
+                    <span><b>{p.cycle} ወር</b> · {money(p.amount)}</span>
+                    <span className="muted small" style={{ textAlign: "right" }}>
+                      {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d })} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
 // Login (Username & Password, Show/Hide, Forgot Password)
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
@@ -629,7 +691,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 // ----------------------------------------------------------------------
 export default function App() {
   const [session, setSession] = useState(undefined);
-  const [userRole, setUserRole] = useState("viewer");
+  const [userRole, setUserRole] = useState(null);
   const { tenants, loading, error, reload } = useTenants();
   const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
   const [drawer, setDrawer] = useState(null);
@@ -648,7 +710,7 @@ export default function App() {
           .select("role")
           .eq("id", data.session.user.id)
           .single();
-        if (profile) setUserRole(profile.role);
+        setUserRole(profile?.role || "viewer");
       }
     });
 
@@ -661,9 +723,9 @@ export default function App() {
           .select("role")
           .eq("id", s.user.id)
           .single();
-        if (profile) setUserRole(profile.role);
+        setUserRole(profile?.role || "viewer");
       } else {
-        setUserRole("viewer");
+        setUserRole(null);
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -779,6 +841,12 @@ export default function App() {
 
   if (recovery) {
     return <ResetPassword onDone={() => setRecovery(false)} />;
+  }
+
+  if (userRole === null) return null; // role still loading
+
+  if (userRole === "tenant") {
+    return <TenantPortal tenants={tenants} loading={loading} />;
   }
 
   return (
