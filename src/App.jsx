@@ -800,7 +800,7 @@ export default function App() {
           <div className="toolbtns">
             <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
             <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
-            <button className="btn" onClick={() => supabase.auth.signOut()}>🚪 ውጣ</button>
+            <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
           </div>
         </header>
 

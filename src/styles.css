@@ -560,3 +560,9 @@ button.tab:nth-child(11) {
   .chip{padding:8px 12px;font-size:13.5px}
   .searchbox{max-width:none;flex-basis:100%}
 }
+
+/* ---------- LOGOUT: bold red ---------- */
+.btn.btn-logout{background:#DC2626;color:#fff;border:1px solid #B91C1C;font-weight:700;
+  box-shadow:0 1px 2px rgba(185,28,28,.35)}
+.btn.btn-logout:hover{background:#B91C1C;border-color:#991B1B}
+.btn.btn-logout:active{background:#991B1B}
