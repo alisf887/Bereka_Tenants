@@ -1,7 +1,6 @@
 /* =====================================================================
    በረካ ህንፃ — Tenant Register  |  Final stylesheet
    Works with App.jsx. Theme: set data-theme="light|dark" on <html>
-   (see the useEffect snippet); with no attribute it follows the OS.
    ===================================================================== */
 
 :root{
@@ -19,6 +18,7 @@
   --border:var(--line);
   --bg-secondary:var(--panel-2);
 }
+
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0B0F17; --panel:#111827; --panel-2:#1F2937; --ink:#F9FAFB; --ink-soft:#9CA3AF;
@@ -30,6 +30,7 @@
     --shadow-btn:0 1px 2px 0 rgba(0,0,0,0.4);
   }
 }
+
 [data-theme="dark"]{
   --bg:#0B0F17; --panel:#111827; --panel-2:#1F2937; --ink:#F9FAFB; --ink-soft:#9CA3AF;
   --line:#374151; --accent:#2DD4BF; --accent-hi:#5EEAD4; --accent-lo:#0D9488; --accent-soft:#134E4A;
@@ -157,7 +158,6 @@ tr.row:hover td{background:var(--panel-2)}
 .scrim{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(2px);z-index:40;animation:fade-in .15s ease}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 
-/* Updated drawer to center nicely on screen instead of being pinned to the left */
 .drawer{
   position:fixed;
   top:50%; left:50%;
@@ -175,7 +175,6 @@ tr.row:hover td{background:var(--panel-2)}
   @keyframes drawer-pop{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
 }
 
-/* Login opens as a centered card */
 .drawer.drawer-login{
   width:min(420px,calc(100% - 32px));
   padding:32px 28px;
@@ -341,13 +340,15 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   .receipt-outer{padding:0}
   #receipt.receipt-paper{padding:0;box-shadow:none}
 }
-/* Custom Floor Button Colors matching Picture 2 Reference */
+
+/* Custom Floor Button Colors */
 .floor-tab-btn.floor-gf { background-color: #1e3a8a !important; color: #ffffff !important; }
 .floor-tab-btn.floor-1f { background-color: #065f46 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-2f { background-color: #047857 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-3f { background-color: #6b21a8 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-5f { background-color: #b45309 !important; color: #ffffff !important; }
 .floor-tab-btn.floor-store { background-color: #78350f !important; color: #ffffff !important; }
+
 /* Unique Professional Status Colors */
 .pill.late, .tab[aria-pressed="true"].status-late {
   background-color: #fee2e2 !important;
@@ -366,7 +367,8 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   color: #065f46 !important;
   border: 1px solid #34d399 !important;
 }
-/* Unique Professional Colors for Status Filter Buttons (ያልተከፈለ፣ ሊያልቅ የቀረበ፣ የተከፈለ) */
+
+/* Status Filter Buttons */
 .status-filter-btn.status-late-btn[aria-pressed="true"], 
 .status-filter-btn.status-late-btn:hover {
   background-color: #fee2e2 !important;

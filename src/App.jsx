@@ -73,21 +73,21 @@ function useTenants() {
 }
 
 // ----------------------------------------------------------------------
-// Login Component (Username & Password)
+// Login Component (Username & Password with Show/Hide & Forgot Password)
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [infoMsg, setInfoMsg] = useState(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setInfoMsg(null);
     
-    // Directly use the typed email/username without adding a fake domain
     const emailInput = username.toLowerCase().trim();
-
     const { error } = await supabase.auth.signInWithPassword({ 
       email: emailInput, 
       password 
@@ -100,6 +100,27 @@ function Login({ onDone }) {
       onDone();
     }
   }
+
+  async function handleForgotPassword() {
+    const emailInput = username.toLowerCase().trim();
+    if (!emailInput) {
+      setError("እባክዎ በመጀመሪያ ኢሜይልዎን (መግቢያ ስም) ያስገቡ።");
+      return;
+    }
+    setBusy(true); setError(null); setInfoMsg(null);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
+      redirectTo: window.location.origin,
+    });
+    
+    setBusy(false);
+    if (error) {
+      setError(errText(error));
+    } else {
+      setInfoMsg("የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልክቷል።");
+    }
+  }
+
   return (
     <div className="loginwrap">
       <form className="loginbox" onSubmit={submit} noValidate>
@@ -107,7 +128,7 @@ function Login({ onDone }) {
         <h1>በረካ ህንፃ</h1>
         <p className="sub">ለመቀጠል መግቢያ ስምዎን እና የይለፍ ቃል ያስገቡ</p>
         
-        <label htmlFor="username">መግቢያ ስም (Username)</label>
+        <label htmlFor="username">መግቢያ ስም (Username / Email)</label>
         <input 
           id="username" 
           type="text" 
@@ -119,20 +140,50 @@ function Login({ onDone }) {
         />
         
         <label htmlFor="password">የይለፍ ቃል (Password)</label>
-        <input 
-          id="password" 
-          type="password" 
-          autoComplete="current-password" 
-          required
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
-        />
+        <div className="password-wrapper" style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <input 
+            id="password" 
+            type={showPassword ? "text" : "password"} 
+            autoComplete="current-password" 
+            required
+            style={{ width: "100%", paddingRight: "40px" }}
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+          />
+          <button 
+            type="button" 
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "10px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.1rem",
+              color: "var(--muted)"
+            }}
+            title={showPassword ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
+          >
+            {showPassword ? "👁️‍‍🗨️" : "👁️"}
+          </button>
+        </div>
         
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button className="btn btn-primary" type="submit" disabled={busy} style={{ marginTop: 16, width: "100%" }}>
           {busy ? "..." : "ግባ (Login)"} 
         </button>
 
-        {error && <div className="err" role="alert">{error}</div>}
+        <div style={{ textAlign: "right", marginTop: 12 }}>
+          <button 
+            type="button" 
+            onClick={handleForgotPassword}
+            style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
+          >
+            የይለፍ ቃል ረስተዋል? (Forgot Password?)
+          </button>
+        </div>
+
+        {error && <div className="err" role="alert" style={{ marginTop: 10 }}>{error}</div>}
+        {infoMsg && <div style={{ color: "var(--ok)", fontSize: "0.9rem", marginTop: 10, textAlign: "center", fontWeight: 500 }}>{infoMsg}</div>}
       </form>
     </div>
   );
@@ -466,7 +517,6 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       if (data.session) {
-        // Fetch role from app_users table
         const { data: profile } = await supabase
           .from("app_users")
           .select("role")
@@ -498,7 +548,6 @@ export default function App() {
     else el.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Owner is true only if logged in AND role is 'owner'
   const owner = !!session && userRole === "owner";
 
   function flash(msg, undoable, tenantId) {
@@ -597,7 +646,6 @@ export default function App() {
 
   if (session === undefined) return null;
 
-  // IF NOT LOGGED IN AT ALL, SHOW LOGIN SCREEN FOR EVERYONE (Owners and Viewers)
   if (!session) {
     return <Login onDone={() => window.location.reload()} />;
   }
@@ -656,13 +704,40 @@ export default function App() {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-            <div className="tabs">
-              {floors.map((f) => (
-                <button key={f} className="tab" aria-pressed={filters.floor === f}
-                  onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
-                  {f === "all" ? "ሁሉም ወለል" : f}
-                </button>
-              ))}
+            {/* Excel-style professional colored floor buttons */}
+            <div className="tabs" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {floors.map((f) => {
+                let tabBg = "var(--bg-secondary)";
+                let tabColor = "var(--text)";
+                if (f === "G-F") { tabBg = "#1e3a8a"; tabColor = "#fff"; }
+                else if (f === "1-F") { tabBg = "#065f46"; tabColor = "#fff"; }
+                else if (f === "2-F") { tabBg = "#047857"; tabColor = "#fff"; }
+                else if (f === "3-F") { tabBg = "#6b21a8"; tabColor = "#fff"; }
+                else if (f === "5-F") { tabBg = "#b45309"; tabColor = "#fff"; }
+                else if (f === "store") { tabBg = "#78350f"; tabColor = "#fff"; }
+
+                const isActive = filters.floor === f;
+
+                return (
+                  <button 
+                    key={f} 
+                    className="tab" 
+                    aria-pressed={isActive}
+                    onClick={() => setFilters((s) => ({ ...s, floor: f }))}
+                    style={{
+                      backgroundColor: isActive ? tabBg : "var(--bg-secondary)",
+                      color: isActive ? tabColor : "var(--ink-soft)",
+                      border: isActive ? `2px solid ${tabBg}` : "1px solid var(--border)",
+                      fontWeight: isActive ? "bold" : "normal",
+                      borderRadius: "6px",
+                      padding: "6px 12px",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    {f === "all" ? "ሁሉም ወለል" : f}
+                  </button>
+                );
+              })}
             </div>
 
             {filters.viewMode === "active" && (
