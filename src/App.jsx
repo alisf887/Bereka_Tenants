@@ -211,6 +211,15 @@ function TenantPortal({ tenants, loading }) {
             {t.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt6)}</b><span>የ6 ወር ክፍያ</span></div>}
           </section>
 
+          {t.prevAmt3 != null && t.amt3 != null && t.amt3 > t.prevAmt3 && (
+            <div className="inc-card">
+              <h3>አዲስ ኪራይ ጭማሪ</h3>
+              <div className="inc-row"><span>ቀድሞ የነበረ የ3 ወር ክፍያ</span><b>{money(t.prevAmt3)}</b></div>
+              <div className="inc-row"><span>ጭማሪ</span><b>+ {money(t.amt3 - t.prevAmt3)}</b></div>
+              <div className="inc-row inc-total"><span>አዲስ ጠቅላላ የ3 ወር ክፍያ</span><b>{money(t.amt3)}</b></div>
+            </div>
+          )}
+
           <div className="hist">
             <h3>የክፍያ ታሪክ</h3>
             {t.payments.length === 0 ? (
@@ -644,7 +653,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           <datalist id="floorList">{floorOptions.map((f) => <option key={f} value={f} />)}</datalist>
           <div className="field"><label htmlFor="edPhone">ስልክ</label>
             <input id="edPhone" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-          <button className="btn" disabled={busy} onClick={saveInfo}>መረጃ አስቀምጥ</button>
+          <button className="btn btn-save" disabled={busy} onClick={saveInfo}>መረጃ አስቀምጥ</button>
 
           <div className="field"><label htmlFor="edCStart">ውል የጀመረበት</label>
             <input id="edCStart" value={form.contractStart} onChange={(e) => set("contractStart", e.target.value)} /></div>
@@ -661,7 +670,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
               <select value={form.m} onChange={(e) => set("m", e.target.value)}>{monthOptions}</select>{" "}
               <input type="number" min="1" max="30" style={{ width: 66 }} value={form.d} onChange={(e) => set("d", e.target.value)} />{" "}
               <input type="number" min="1990" max="2100" style={{ width: 86 }} value={form.y} onChange={(e) => set("y", e.target.value)} />{" "}
-              <button className="btn" disabled={busy} onClick={saveDate}>አስቀምጥ</button>
+              <button className="btn btn-save" disabled={busy} onClick={saveDate}>አስቀምጥ</button>
             </div>
           </div>
 
@@ -672,11 +681,11 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(6)}>
-                📅 የስድስት ወር ውል
+              <button className="btn btn-6m" style={{ flex: 1 }} disabled={busy} onClick={() => extendContract(6)}>
+                የስድስት ወር ውል
               </button>
-              <button className="btn" style={{ flex: 1, background: "var(--bg-secondary)", border: "1px solid var(--border)" }} disabled={busy} onClick={() => extendContract(12)}>
-                📅 የአንድ አመት ውል
+              <button className="btn btn-1y" style={{ flex: 1 }} disabled={busy} onClick={() => extendContract(12)}>
+                የአንድ አመት ውል
               </button>
             </div>
             {t.prevContractEnd && (
@@ -686,7 +695,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
             )}
 
             <button className="btn btn-rent" disabled={busy} onClick={() => setShowIncrease((v) => !v)}>
-              + ኪራይ ጭማሪ
+              + አዲስ ኪራይ ጭማሪ
             </button>
             {showIncrease && (
               <div className="inc-box">

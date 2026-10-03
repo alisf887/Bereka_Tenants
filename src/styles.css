@@ -573,3 +573,19 @@ button.tab:nth-child(11) {
 .inc-box{background:var(--bg-secondary,var(--panel-2));border:1px solid var(--border,var(--line));
   border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .inc-preview{margin:0;font-size:14px}
+
+/* ---------- TENANT: new rent increase card ---------- */
+.inc-card{margin-top:16px;padding:16px;background:var(--panel);border:1px solid var(--line);
+  border-left:5px solid #B45309;border-radius:12px;box-shadow:var(--shadow)}
+.inc-card h3{margin:0 0 10px;color:#B45309}
+.inc-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.inc-row.inc-total{border-bottom:0;margin-top:4px;padding-top:10px;font-size:17px;font-weight:700}
+
+/* ---------- DRAWER BUTTON COLORS ---------- */
+.btn.btn-save{background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:600}
+.btn.btn-save:hover{background:var(--accent-hover)}
+.btn.btn-6m{background:#1D4ED8;color:#fff;border:1px solid #1E40AF;font-weight:700}
+.btn.btn-6m:hover{background:#1E40AF}
+.btn.btn-1y{background:#D4A017;color:#2B1D00;border:1px solid #B8860B;font-weight:700}
+.btn.btn-1y:hover{background:#B8860B;color:#fff}
+.btn.btn-save:disabled,.btn.btn-6m:disabled,.btn.btn-1y:disabled{opacity:.5;cursor:not-allowed}
