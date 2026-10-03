@@ -48,14 +48,14 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
   background:var(--bg); color:var(--ink);
   font-family:"Noto Sans Ethiopic","Inter",system-ui,-apple-system,Segoe UI,sans-serif;
-  font-size:16.5px; line-height:1.5; font-feature-settings:"tnum" 1;
+  font-size:18px; line-height:1.5; font-feature-settings:"tnum" 1;
   -webkit-font-smoothing: antialiased;
 }
 .wrap{max-width:1240px;margin:0 auto;padding:32px 24px calc(72px + env(safe-area-inset-bottom))}
 header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:28px;
   border-bottom:1px solid var(--line);padding-bottom:20px}
-h1{font-size:26px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}
-.sub{color:var(--ink-soft);font-size:13px;margin-top:4px;font-weight:400}
+h1{font-size:28px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-soft);font-size:14px;margin-top:4px;font-weight:400}
 .toolbtns{display:flex;gap:10px;flex-wrap:wrap}
 button{font:inherit;cursor:pointer}
 
@@ -271,7 +271,7 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
 }
 .loginbox h1{font-size:20px;margin:0 0 6px;letter-spacing:-.02em}
 .loginbox p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:13px}
-.loginbox label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:16px 0 6px}
+.loginbox label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin:16px 0 6px}
 .loginbox input{width:100%;display:block;padding:10px 12px}
 .loginbox input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .loginbox .btn-primary{width:100%;margin-top:24px;padding:11px;font-size:14px;border-radius:8px}
@@ -385,6 +385,80 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
 
 .status-filter-btn.status-paid-btn[aria-pressed="true"], 
 .status-filter-btn.status-paid-btn:hover {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
+}
+/* =====================================================================
+   የበረካ ህንፃ — የመጨረሻ የ CSS ማስተካከያ (Excel-Style Floor & Status Tabs)
+   ===================================================================== */
+
+/* 1. የፎቅ አዝራሮች (Floor Tabs) ቀለሞች */
+button.tab:nth-child(3), button.tab[data-floor="1-F"] { 
+  background-color: #065f46 !important; 
+  color: #ffffff !important; 
+  border-color: #047857 !important; 
+}
+
+button.tab:nth-child(4), button.tab[data-floor="2-F"] { 
+  background-color: #047857 !important; 
+  color: #ffffff !important; 
+  border-color: #059669 !important; 
+}
+
+button.tab:nth-child(5), button.tab[data-floor="3-F"] { 
+  background-color: #6b21a8 !important; 
+  color: #ffffff !important; 
+  border-color: #7e22ce !important; 
+}
+
+button.tab:nth-child(6), button.tab[data-floor="5-F"] { 
+  background-color: #b45309 !important; 
+  color: #ffffff !important; 
+  border-color: #d97706 !important; 
+}
+
+button.tab:nth-child(7), button.tab[data-floor="G-F"] { 
+  background-color: #334155 !important; 
+  color: #ffffff !important; 
+  border-color: #475569 !important; 
+}
+
+button.tab:nth-child(8), button.tab[data-floor="store"] { 
+  background-color: #78350f !important; 
+  color: #ffffff !important; 
+  border-color: #92400e !important; 
+}
+
+.tabs button.tab:hover {
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+/* 2. የሁኔታ ማጣሪያ አዝራሮች (ያልተከፈለ፣ ሊያልቅ የቀረበ፣ የተከፈለ) የዓለም አቀፍ ደረጃ ቀለሞች */
+
+/* ያልተከፈለ (Late / Overdue - Soft Red) */
+.status-filter-btn.status-late-btn[aria-pressed="true"], 
+.status-filter-btn.status-late-btn:hover,
+.pill.late {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #f87171 !important;
+}
+
+/* ሊያልቅ የቀረበ (Expiring Soon - Warm Amber) */
+.status-filter-btn.status-soon-btn[aria-pressed="true"], 
+.status-filter-btn.status-soon-btn:hover,
+.pill.soon {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+/* የተከፈለ (Paid / OK - Clean Mint Green) */
+.status-filter-btn.status-paid-btn[aria-pressed="true"], 
+.status-filter-btn.status-paid-btn:hover,
+.pill.paid {
   background-color: #d1fae5 !important;
   color: #065f46 !important;
   border-color: #34d399 !important;
