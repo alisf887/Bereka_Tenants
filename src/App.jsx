@@ -13,6 +13,34 @@ function errText(err) {
 }
 
 // ----------------------------------------------------------------------
+// Ethiopian contract-date helpers (work on text like "ታህሳስ 14/2019")
+// ----------------------------------------------------------------------
+const normAm = (s) =>
+  String(s || "")
+    .replace(/[ሐኀ]/g, "ሀ").replace(/[ሕኅ]/g, "ህ")
+    .replace(/ሠ/g, "ሰ").replace(/ሥ/g, "ስ").replace(/ሣ/g, "ሳ")
+    .replace(/ዐ/g, "አ").replace(/ፀ/g, "ጸ")
+    .replace(/\s+/g, "");
+
+function parseContractDate(txt) {
+  const m = String(txt || "").trim().match(/^(\D+?)\s*(\d{1,2})\s*[\/\-.]\s*(\d{4})$/);
+  if (!m) return null;
+  const idx = MONTHS.slice(0, 12).findIndex((n) => normAm(n) === normAm(m[1]));
+  if (idx < 0) return null;
+  return { idx, d: Number(m[2]), y: Number(m[3]) };
+}
+
+function addMonthsToContract(txt, months) {
+  const p = parseContractDate(txt);
+  if (!p) return null;
+  const total = p.y * 12 + p.idx + months;
+  const idx = total % 12;
+  const y = Math.floor(total / 12);
+  const d = Math.min(p.d, 30); // every regular Ethiopian month has 30 days
+  return `${MONTHS[idx]} ${String(d).padStart(2, "0")}/${y}`;
+}
+
+// ----------------------------------------------------------------------
 // Data loading + realtime sync
 // ----------------------------------------------------------------------
 function useTenants() {
@@ -314,23 +342,39 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   }
 
   async function extendContract(monthsToAdd) {
+    const current = (t.contractEnd || "").trim();
+    if (!current) {
+      onFlash("የውል ማብቂያ ቀን አልተመዘገበም። መጀመሪያ 'ውል የሚያበቃበት' ያስገቡ።", false);
+      return;
+    }
+    const newEnd = addMonthsToContract(current, monthsToAdd);
+    if (!newEnd) {
+      onFlash(`የውል ማብቂያ ቀን "${current}" ሊነበብ አልቻለም። ቅርጸቱ "ወር ቀን/ዓመት" መሆን አለበት (ለምሳሌ፦ ታህሳስ 14/2019)።`, false);
+      return;
+    }
     setBusy(true);
-    const { data, error } = await supabase.rpc("extend_tenant_contract", { 
-      p_tenant_id: t.id, 
-      p_months: monthsToAdd 
-    });
+    const { error } = await supabase
+      .from("tenants")
+      .update({ contract_end: newEnd, prev_contract_end: current })
+      .eq("id", t.id);
     setBusy(false);
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል!`, true, t.id);
+      // undoable=false: the toast "መልስ" button only undoes payments, never contracts
+      onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል → ${newEnd}`, false);
       onSaved();
     }
   }
 
   async function revertContract() {
+    if (!t.prevContractEnd) return;
+    if (!window.confirm(`የመጨረሻው ውል ይሰረዝ? ውሉ ወደ "${t.prevContractEnd}" ይመለሳል።`)) return;
     setBusy(true);
-    const { error } = await supabase.rpc("revert_tenant_contract", { p_tenant_id: t.id });
+    const { error } = await supabase
+      .from("tenants")
+      .update({ contract_end: t.prevContractEnd, prev_contract_end: null })
+      .eq("id", t.id);
     setBusy(false);
     if (error) {
       onFlash(errText(error), false);
