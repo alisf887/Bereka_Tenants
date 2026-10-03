@@ -341,65 +341,222 @@ footer{margin-top:32px;color:var(--ink-soft);font-size:12px}
   #receipt.receipt-paper{padding:0;box-shadow:none}
 }
 
+/* Custom Floor Button Colors */
+.floor-tab-btn.floor-gf { background-color: #1e3a8a !important; color: #ffffff !important; }
+.floor-tab-btn.floor-1f { background-color: #065f46 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-2f { background-color: #047857 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-3f { background-color: #6b21a8 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-5f { background-color: #b45309 !important; color: #ffffff !important; }
+.floor-tab-btn.floor-store { background-color: #78350f !important; color: #ffffff !important; }
+
+/* Unique Professional Status Colors */
+.pill.late, .tab[aria-pressed="true"].status-late {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #f87171 !important;
+}
+
+.pill.soon, .tab[aria-pressed="true"].status-soon {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fbbf24 !important;
+}
+
+.pill.paid, .tab[aria-pressed="true"].status-paid {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 1px solid #34d399 !important;
+}
+
+/* Status Filter Buttons */
+.status-filter-btn.status-late-btn[aria-pressed="true"], 
+.status-filter-btn.status-late-btn:hover {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #f87171 !important;
+}
+
+.status-filter-btn.status-soon-btn[aria-pressed="true"], 
+.status-filter-btn.status-soon-btn:hover {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+.status-filter-btn.status-paid-btn[aria-pressed="true"], 
+.status-filter-btn.status-paid-btn:hover {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
+}
 /* =====================================================================
-   የበረካ ህንፃ — የመጨረሻ እና ትክክለኛ የቁልፍ ቀለሞች ማስተካከያ (Fixed)
+   የበረካ ህንፃ — የመጨረሻ የ CSS ማስተካከያ (Excel-Style Floor & Status Tabs)
    ===================================================================== */
 
-/* 1. ሁሉም ወለል (All Floors) ቁልፍ - ግራጫማ ቀለም */
-.tabs button.tab:first-child, 
-.tabs button.tab:nth-child(1),
-button.tab[data-floor="all"] {
+/* 1. የፎቅ አዝራሮች (Floor Tabs) ቀለሞች */
+button.tab:nth-child(3), button.tab[data-floor="1-F"] { 
+  background-color: #065f46 !important; 
+  color: #ffffff !important; 
+  border-color: #047857 !important; 
+}
+
+button.tab:nth-child(4), button.tab[data-floor="2-F"] { 
+  background-color: #047857 !important; 
+  color: #ffffff !important; 
+  border-color: #059669 !important; 
+}
+
+button.tab:nth-child(5), button.tab[data-floor="3-F"] { 
+  background-color: #6b21a8 !important; 
+  color: #ffffff !important; 
+  border-color: #7e22ce !important; 
+}
+
+button.tab:nth-child(6), button.tab[data-floor="5-F"] { 
+  background-color: #b45309 !important; 
+  color: #ffffff !important; 
+  border-color: #d97706 !important; 
+}
+
+button.tab:nth-child(7), button.tab[data-floor="G-F"] { 
+  background-color: #334155 !important; 
+  color: #ffffff !important; 
+  border-color: #475569 !important; 
+}
+
+button.tab:nth-child(8), button.tab[data-floor="store"] { 
+  background-color: #78350f !important; 
+  color: #ffffff !important; 
+  border-color: #92400e !important; 
+}
+
+.tabs button.tab:hover {
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+/* 2. የሁኔታ ማጣሪያ አዝራሮች (ያልተከፈለ፣ ሊያልቅ የቀረበ፣ የተከፈለ) የዓለም አቀፍ ደረጃ ቀለሞች */
+
+/* ያልተከፈለ (Late / Overdue - Soft Red) */
+.status-filter-btn.status-late-btn[aria-pressed="true"], 
+.status-filter-btn.status-late-btn:hover,
+.pill.late {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border-color: #f87171 !important;
+}
+
+/* ሊያልቅ የቀረበ (Expiring Soon - Warm Amber) */
+.status-filter-btn.status-soon-btn[aria-pressed="true"], 
+.status-filter-btn.status-soon-btn:hover,
+.pill.soon {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fbbf24 !important;
+}
+
+/* የተከፈለ (Paid / OK - Clean Mint Green) */
+.status-filter-btn.status-paid-btn[aria-pressed="true"], 
+.status-filter-btn.status-paid-btn:hover,
+.pill.paid {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
+}
+/* =====================================================================
+   የበረካ ህንፃ — ትክክለኛ የቁልፍ (Buttons) ቀለሞች ማስተካከያ
+   ===================================================================== */
+
+/* 1. ሁሉም ወለል እና 1-F ቀለሞች */
+button.tab:nth-child(1), button.tab[data-floor="all"], button.tab:first-child { 
+  background-color: #475569 !important; 
+  color: #ffffff !important; 
+  border-color: #334155 !important; 
+}
+
+button.tab:nth-child(3), button.tab[data-floor="1-F"] { 
+  background-color: #065f46 !important; 
+  color: #ffffff !important; 
+  border-color: #047857 !important; 
+}
+
+/* 2. ሁሉም ሁኔታ (All Status) ቀለም */
+.status-filter-btn:first-child, button.tab:nth-child(8) {
   background-color: #475569 !important;
   color: #ffffff !important;
   border-color: #334155 !important;
 }
 
-/* 2. 1-F ቁልፍ - አረንጓዴ ቀለም */
-.tabs button.tab:nth-child(3), 
-button.tab[data-floor="1-F"] {
-  background-color: #065f46 !important;
-  color: #ffffff !important;
-  border-color: #047857 !important;
-}
-
-/* 3. 2-F እስከ 5-F እና Store ቀለሞች */
-button.tab[data-floor="2-F"] { background-color: #047857 !important; color: #ffffff !important; border-color: #059669 !important; }
-button.tab[data-floor="3-F"] { background-color: #6b21a8 !important; color: #ffffff !important; border-color: #7e22ce !important; }
-button.tab[data-floor="5-F"] { background-color: #b45309 !important; color: #ffffff !important; border-color: #d97706 !important; }
-button.tab[data-floor="G-F"] { background-color: #334155 !important; color: #ffffff !important; border-color: #475569 !important; }
-button.tab[data-floor="store"] { background-color: #78350f !important; color: #ffffff !important; border-color: #92400e !important; }
-
-/* 4. ሁሉም ሁኔታ (All Status) ቁልፍ - ግራጫማ ቀለም */
-.controls .tabs:nth-of-type(2) button.tab:first-child,
-.controls .tabs:nth-of-type(2) button.tab:nth-child(1) {
-  background-color: #475569 !important;
-  color: #ffffff !important;
-  border-color: #334155 !important;
-}
-
-/* 5. ያልተከፈለ ቁልፍ - ሙሉ በሙሉ ቀይ (Red) ቀለም */
-button.tab[data-status="late"],
-.status-filter-btn.status-late-btn,
-.controls .tabs:nth-of-type(2) button.tab:nth-child(2) {
-  background-color: #dc2626 !important;
+/* 3. ያልተከፈለ - ሙሉ በሙሉ ቀይ (Red) እንዲሆን */
+.status-filter-btn.status-late-btn, 
+.status-filter-btn[data-status="late"],
+button.tab:nth-child(9) {
+  background-color: #dc2626 !important; /* ጠንካራ ቀይ ቀለም */
   color: #ffffff !important;
   border-color: #b91c1c !important;
 }
 
-/* 6. ሊያልቅ የቀረበ ቁልፍ - ልክ እንደ G-F ቀለም (Dark Slate/Grey) */
-button.tab[data-status="soon"],
-.status-filter-btn.status-soon-btn,
-.controls .tabs:nth-of-type(2) button.tab:nth-child(3) {
-  background-color: #334155 !important;
+/* 4. ሊያልቅ የቀረበ - ልክ እንደ G-F ቀለም (Dark Slate/Grey) እንዲሆን */
+.status-filter-btn.status-soon-btn, 
+.status-filter-btn[data-status="soon"],
+button.tab:nth-child(10) {
+  background-color: #334155 !important; /* G-F የሚጠቀምበት ቀለም */
   color: #ffffff !important;
   border-color: #475569 !important;
 }
 
-/* 7. የተከፈለ ቁልፍ - እንዳለ ይቆይ (Mint Green) */
-button.tab[data-status="paid"],
-.status-filter-btn.status-paid-btn,
-.controls .tabs:nth-of-type(2) button.tab:nth-child(4) {
-  background-color: #0d9488 !important;
-  color: #ffffff !important;
+/* 5. የተከፈለ - እንዳለ ይቆይ (Mint Green) */
+.status-filter-btn.status-paid-btn, 
+.status-filter-btn[data-status="paid"],
+button.tab:nth-child(11) {
+  background-color: #0d9488 !important; 
+  color: #ffffff !important; 
   border-color: #0f766e !important;
+}
+
+/* ======================================================================
+   EXCEL-STYLE FILTER BAR  (always-colored tabs, active = underline + ring)
+   ====================================================================== */
+.filterbar{display:flex;flex-direction:column;gap:14px;background:var(--panel);padding:16px;
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.filterrow{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+
+.chip{
+  --c:#334155; --fg:#fff;
+  background:var(--c);color:var(--fg);
+  border:1px solid rgba(0,0,0,.2);border-radius:8px;
+  padding:8px 16px;font:inherit;font-size:14px;font-weight:600;line-height:1.2;cursor:pointer;
+  opacity:.8;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);
+  transition:opacity .15s ease,transform .15s ease,box-shadow .15s ease;
+}
+.chip:hover{opacity:.95;transform:translateY(-1px)}
+.chip[aria-pressed="true"]{
+  opacity:1;
+  box-shadow:inset 0 -3px 0 rgba(255,255,255,.9),0 0 0 2px var(--panel),0 0 0 4px var(--c);
+}
+
+.btn-add{display:inline-flex;align-items:center;gap:8px;font-weight:600;padding:9px 16px}
+
+.searchbox{position:relative;flex:1 1 260px;max-width:380px;min-width:220px}
+.searchbox svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-soft);pointer-events:none}
+.searchbox .search{width:100%;padding-left:36px;min-width:0}
+
+/* ---------- LOGIN: password show/hide + forgot ---------- */
+.pw{position:relative}
+.pw input{padding-right:46px}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;
+  width:34px;height:34px;background:none;border:0;border-radius:6px;color:var(--ink-soft);cursor:pointer}
+.pw-toggle:hover{color:var(--accent);background:var(--panel-2)}
+.loginbox .forgot{display:block;width:100%;text-align:center;margin-top:16px;padding:6px;background:none;border:0;
+  color:var(--accent);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px}
+.loginbox .forgot:hover{color:var(--accent-hover)}
+.info-ok{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--ok-bg);color:var(--ok);
+  border:1px solid var(--ok);font-size:13.5px;font-weight:500;text-align:center}
+
+@media (max-width:860px){
+  .filterbar{padding:12px}
+  .chip{padding:8px 12px;font-size:13.5px}
+  .searchbox{max-width:none;flex-basis:100%}
 }

@@ -75,10 +75,78 @@ function useTenants() {
 // ----------------------------------------------------------------------
 // Login Component (Username & Password with Show/Hide & Forgot Password)
 // ----------------------------------------------------------------------
+const FLOOR_STYLES = {
+  all:     { bg: "#334155", fg: "#FFFFFF" },
+  "G-F":   { bg: "#1F3864", fg: "#FFFFFF" },
+  "1-F":   { bg: "#1F6F5C", fg: "#FFFFFF" },
+  "2-F":   { bg: "#2E7D4F", fg: "#FFFFFF" },
+  "3-F":   { bg: "#6B3FA0", fg: "#FFFFFF" },
+  "4-F":   { bg: "#0E7490", fg: "#FFFFFF" },
+  "5-F":   { bg: "#C25E1B", fg: "#FFFFFF" },
+  store:   { bg: "#F4E3C1", fg: "#5B3A0A" },
+};
+const FALLBACK_FLOOR = { bg: "#475569", fg: "#FFFFFF" };
+const floorStyle = (f) => {
+  const s = FLOOR_STYLES[f] || FALLBACK_FLOOR;
+  return { "--c": s.bg, "--fg": s.fg };
+};
+
+const STATUS_STYLES = {
+  all:  "#334155",
+  late: "#BE123C",
+  soon: "#B45309",
+  paid: "#0F766E",
+};
+
+// ----------------------------------------------------------------------
+// Password field with SVG show/hide icon (emoji icons often render blank on Windows)
+// ----------------------------------------------------------------------
+function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pw">
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        autoComplete={autoComplete}
+        autoFocus={autoFocus}
+        required
+        value={value}
+        onChange={onChange}
+      />
+      <button
+        type="button"
+        className="pw-toggle"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
+        aria-pressed={show}
+        title={show ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {show ? (
+            <>
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </>
+          ) : (
+            <>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </>
+          )}
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Login (Username & Password, Show/Hide, Forgot Password)
+// ----------------------------------------------------------------------
 function Login({ onDone }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [infoMsg, setInfoMsg] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -86,19 +154,15 @@ function Login({ onDone }) {
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError(null); setInfoMsg(null);
-    
-    const emailInput = username.toLowerCase().trim();
-    const { error } = await supabase.auth.signInWithPassword({ 
-      email: emailInput, 
-      password 
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: username.toLowerCase().trim(),
+      password,
     });
-    
+
     setBusy(false);
-    if (error) {
-      setError("የተሳሳተ መግቢያ ስም ወይም የይለፍ ቃል አሉ።");
-    } else {
-      onDone();
-    }
+    if (error) setError("የተሳሳተ መግቢያ ስም ወይም የይለፍ ቃል አሉ።");
+    else onDone();
   }
 
   async function handleForgotPassword() {
@@ -108,17 +172,14 @@ function Login({ onDone }) {
       return;
     }
     setBusy(true); setError(null); setInfoMsg(null);
-    
+
     const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
       redirectTo: window.location.origin,
     });
-    
+
     setBusy(false);
-    if (error) {
-      setError(errText(error));
-    } else {
-      setInfoMsg("የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልክቷል።");
-    }
+    if (error) setError(errText(error));
+    else setInfoMsg("የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል። ኢሜይልዎን ይመልከቱ (Spam ጭምር)።");
   }
 
   return (
@@ -127,63 +188,83 @@ function Login({ onDone }) {
         <div className="login-mark" aria-hidden="true">🏢</div>
         <h1>በረካ ህንፃ</h1>
         <p className="sub">ለመቀጠል መግቢያ ስምዎን እና የይለፍ ቃል ያስገቡ</p>
-        
+
         <label htmlFor="username">መግቢያ ስም (Username / Email)</label>
-        <input 
-          id="username" 
-          type="text" 
-          autoComplete="username" 
-          required 
+        <input
+          id="username"
+          type="text"
+          autoComplete="username"
+          required
           autoFocus
-          value={username} 
-          onChange={(e) => setUsername(e.target.value)} 
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
-        
+
         <label htmlFor="password">የይለፍ ቃል (Password)</label>
-        <div className="password-wrapper" style={{ position: "relative", display: "flex", alignItems: "center" }}>
-          <input 
-            id="password" 
-            type={showPassword ? "text" : "password"} 
-            autoComplete="current-password" 
-            required
-            style={{ width: "100%", paddingRight: "40px" }}
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-          />
-          <button 
-            type="button" 
-            onClick={() => setShowPassword(!showPassword)}
-            style={{
-              position: "absolute",
-              right: "10px",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "1.1rem",
-              color: "var(--muted)"
-            }}
-            title={showPassword ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
-          >
-            {showPassword ? "👁️‍‍🗨️" : "👁️"}
-          </button>
-        </div>
-        
-        <button className="btn btn-primary" type="submit" disabled={busy} style={{ marginTop: 16, width: "100%" }}>
-          {busy ? "..." : "ግባ (Login)"} 
+        <PasswordField
+          id="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? "..." : "ግባ (Login)"}
         </button>
 
-        <div style={{ textAlign: "right", marginTop: 12 }}>
-          <button 
-            type="button" 
-            onClick={handleForgotPassword}
-            style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "0.85rem", padding: 0 }}
-          >
-            የይለፍ ቃል ረስተዋል? (Forgot Password?)
-          </button>
-        </div>
+        <button type="button" className="forgot" onClick={handleForgotPassword} disabled={busy}>
+          የይለፍ ቃል ረስተዋል? (Forgot Password?)
+        </button>
 
-        {error && <div className="err" role="alert" style={{ marginTop: 10 }}>{error}</div>}
-        {infoMsg && <div style={{ color: "var(--ok)", fontSize: "0.9rem", marginTop: 10, textAlign: "center", fontWeight: 500 }}>{infoMsg}</div>}
+        {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
+        {infoMsg && <div className="info-ok" role="status">{infoMsg}</div>}
+      </form>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Set a new password (shown after the user opens the reset link in their email)
+// ----------------------------------------------------------------------
+function ResetPassword({ onDone }) {
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+    if (pw1.length < 6) { setError("የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር መሆን አለበት።"); return; }
+    if (pw1 !== pw2) { setError("ሁለቱ የይለፍ ቃሎች አይመሳሰሉም።"); return; }
+
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: pw1 });
+    setBusy(false);
+
+    if (error) { setError(errText(error)); return; }
+    window.history.replaceState(null, "", window.location.pathname);
+    onDone();
+  }
+
+  return (
+    <div className="loginwrap">
+      <form className="loginbox" onSubmit={submit} noValidate>
+        <div className="login-mark" aria-hidden="true">🔑</div>
+        <h1>አዲስ የይለፍ ቃል</h1>
+        <p className="sub">አዲስ የይለፍ ቃልዎን ያስገቡ</p>
+
+        <label htmlFor="newpw">አዲስ የይለፍ ቃል</label>
+        <PasswordField id="newpw" autoComplete="new-password" autoFocus value={pw1} onChange={(e) => setPw1(e.target.value)} />
+
+        <label htmlFor="newpw2">የይለፍ ቃል ድገም</label>
+        <PasswordField id="newpw2" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? "..." : "አስቀምጥ (Save)"}
+        </button>
+
+        {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
       </form>
     </div>
   );
@@ -511,6 +592,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [theme, setTheme] = useState("auto");
+  const [recovery, setRecovery] = useState(() => /type=recovery/.test(window.location.hash));
   const toastTimer = useRef(null);
 
   useEffect(() => {
@@ -526,7 +608,8 @@ export default function App() {
       }
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
       setSession(s);
       if (s) {
         const { data: profile } = await supabase
@@ -650,6 +733,10 @@ export default function App() {
     return <Login onDone={() => window.location.reload()} />;
   }
 
+  if (recovery) {
+    return <ResetPassword onDone={() => setRecovery(false)} />;
+  }
+
   return (
     <div>
       <div className="wrap">
@@ -678,101 +765,63 @@ export default function App() {
         <section className="stats">
           <div className="stat"><b>{stats.count}</b><span>{filters.viewMode === "archive" ? "የቀድሞ ተከራዮች" : "ንቁ ተከራዮች"}</span></div>
           <div className="stat"><b>{stats.late}</b><span>ያልተከፈለ</span></div>
-          {/* ሊያልቅ የቀረበ - ግራጫማ/ብረታማ ቀለም */}
-          <div className="stat" style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
-            <b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span>
-          </div>
+          <div className="stat"><b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span></div>
           <div className="stat"><b>{stats.paid}</b><span>የተከፈለ</span></div>
           <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
 
-        <div className="controls" style={{ display: "flex", flexDirection: "column", gap: 12, background: "var(--panel)", padding: 16, borderRadius: 12, border: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <div className="tabs" style={{ display: "flex", gap: 4 }}>
-              <button className="tab" aria-pressed={filters.viewMode === "active"}
-                onClick={() => setFilters((s) => ({ ...s, viewMode: "active" }))}
-                style={{ fontWeight: filters.viewMode === "active" ? "bold" : "normal" }}>
-                🏢 ንቁ ተከራዮች (Active)
+        <div className="filterbar">
+          <div className="filterrow">
+            <div className="chips" role="group" aria-label="እይታ">
+              <button type="button" className="chip" style={{ "--c": "#1F3864" }}
+                aria-pressed={filters.viewMode === "active"}
+                onClick={() => setFilters((s) => ({ ...s, viewMode: "active" }))}>
+                ንቁ ተከራዮች (Active)
               </button>
-              <button className="tab" aria-pressed={filters.viewMode === "archive"}
-                onClick={() => setFilters((s) => ({ ...s, viewMode: "archive" }))}
-                style={{ fontWeight: filters.viewMode === "archive" ? "bold" : "normal" }}>
-                📂 የቀድሞ ተከራዮች (Archive / Moved Out)
+              <button type="button" className="chip" style={{ "--c": "#8A5A2B" }}
+                aria-pressed={filters.viewMode === "archive"}
+                onClick={() => setFilters((s) => ({ ...s, viewMode: "archive" }))}>
+                የቀድሞ ተከራዮች (Archive / Moved Out)
               </button>
             </div>
 
             {owner && filters.viewMode === "active" && (
-              <button className="btn btn-primary" onClick={() => setDrawer({ mode: "add" })}>+ አዲስ ተከራይ ጨምር</button>
+              <button type="button" className="btn btn-primary btn-add" onClick={() => setDrawer({ mode: "add" })}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                አዲስ ተከራይ ጨምር
+              </button>
             )}
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-            {/* Excel-style professional colored floor buttons */}
-            <div className="tabs" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {floors.map((f) => {
-                let tabBg = "var(--bg-secondary)";
-                let tabColor = "var(--text)";
-                
-                // Excel matching custom colors for each floor & store
-                if (f === "G-F") { tabBg = "#374151"; tabColor = "#fff"; }
-                else if (f === "1-F") { tabBg = "#15803d"; tabColor = "#fff"; }
-                else if (f === "2-F") { tabBg = "#4f46e5"; tabColor = "#fff"; }
-                else if (f === "3-F") { tabBg = "#7e22ce"; tabColor = "#fff"; }
-                else if (f === "5-F") { tabBg = "#c2410c"; tabColor = "#fff"; }
-                else if (f === "store") { tabBg = "#6b7280"; tabColor = "#fff"; } // Metallic/Gray for store
-
-                const isActive = filters.floor === f;
-
-                return (
-                  <button 
-                    key={f} 
-                    className="tab" 
-                    aria-pressed={isActive}
-                    onClick={() => setFilters((s) => ({ ...s, floor: f }))}
-                    style={{
-                      backgroundColor: isActive ? tabBg : "var(--bg-secondary)",
-                      color: isActive ? tabColor : "var(--ink-soft)",
-                      border: isActive ? `2px solid ${tabBg}` : "1px solid var(--border)",
-                      fontWeight: isActive ? "bold" : "normal",
-                      borderRadius: "6px",
-                      padding: "6px 12px",
-                      transition: "all 0.2s ease"
-                    }}
-                  >
-                    {f === "all" ? "ሁሉም ወለል" : f}
-                  </button>
-                );
-              })}
+          <div className="filterrow">
+            <div className="chips" role="group" aria-label="ወለል">
+              {floors.map((f) => (
+                <button key={f} type="button" className="chip" style={floorStyle(f)}
+                  aria-pressed={filters.floor === f}
+                  onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
+                  {f === "all" ? "ሁሉም ወለል" : f}
+                </button>
+              ))}
             </div>
 
             {filters.viewMode === "active" && (
-              <div className="tabs">
-                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => {
-                  // Make "ሊያልቅ የቀረበ" button use metallic/gray background styling
-                  const isSoonBtn = k === "soon";
-                  const isBtnActive = filters.status === k;
-
-                  return (
-                    <button 
-                      key={k} 
-                      className="tab" 
-                      aria-pressed={isBtnActive}
-                      onClick={() => setFilters((s) => ({ ...s, status: k }))}
-                      style={isSoonBtn ? {
-                        backgroundColor: isBtnActive ? "#4b5563" : "var(--bg-secondary)",
-                        color: isBtnActive ? "#fff" : "var(--text)",
-                        border: isBtnActive ? "2px solid #4b5563" : "1px solid var(--border)"
-                      } : {}}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+              <div className="chips" role="group" aria-label="ሁኔታ">
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
+                  <button key={k} type="button" className="chip" style={{ "--c": STATUS_STYLES[k] }}
+                    aria-pressed={filters.status === k}
+                    onClick={() => setFilters((s) => ({ ...s, status: k }))}>
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
 
-            <input className="search" type="search" placeholder="🔍 በስም፣ በክፍል ቁጥር ወይም በስልክ ፈልግ..."
-              value={filters.q} onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))} style={{ minWidth: 260 }} />
+            <div className="searchbox">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+              <input className="search" type="search" aria-label="ፈልግ"
+                placeholder="በስም፣ በክፍል ቁጥር ወይም በስልክ ፈልግ..."
+                value={filters.q} onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))} />
+            </div>
           </div>
         </div>
 
