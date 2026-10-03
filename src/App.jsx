@@ -175,10 +175,56 @@ function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
 // Tenant portal: a tenant sees ONLY their own record.
 // (The database also enforces this with Row Level Security.)
 // ----------------------------------------------------------------------
-function TenantPortal({ tenants, loading }) {
-  const t = tenants[0]; // RLS returns at most this tenant's own row
-  const s = t ? statusOf(t.payEnd) : null;
+function TenantCard({ t }) {
+  const s = statusOf(t.payEnd);
+  return (
+    <section style={{ marginBottom: 28 }}>
+      <div className="filterbar" style={{ gap: 10 }}>
+        <h2 style={{ margin: 0 }}>{t.name}</h2>
+        <div className="sub">{t.room || "—"} · {t.floor}{t.phone ? " · 0" + t.phone : ""}</div>
+        <div><span className={`pill ${s.cls}`}>{s.label}</span></div>
+      </div>
 
+      <div className="stats" style={{ marginTop: 16 }}>
+        <div className="stat"><b style={{ fontSize: 20 }}>{t.contractStart || "—"}</b><span>ውል የጀመረበት</span></div>
+        <div className="stat"><b style={{ fontSize: 20 }}>{t.contractEnd || "—"}</b><span>ውል የሚያበቃበት</span></div>
+        <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(t.payEnd)}</b><span>ክፍያ የሚያበቃበት</span></div>
+        <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt3)}</b><span>የ3 ወር ክፍያ</span></div>
+        {t.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt6)}</b><span>የ6 ወር ክፍያ</span></div>}
+      </div>
+
+      {t.prevAmt3 != null && t.amt3 != null && t.amt3 > t.prevAmt3 && (
+        <div className="inc-card">
+          <h3>አዲስ ኪራይ ጭማሪ</h3>
+          <div className="inc-row"><span>ቀድሞ የነበረ የ3 ወር ክፍያ</span><b>{money(t.prevAmt3)}</b></div>
+          <div className="inc-row"><span>ጭማሪ</span><b>+ {money(t.amt3 - t.prevAmt3)}</b></div>
+          <div className="inc-row inc-total"><span>አዲስ ጠቅላላ የ3 ወር ክፍያ</span><b>{money(t.amt3)}</b></div>
+        </div>
+      )}
+
+      <div className="hist">
+        <h3>የክፍያ ታሪክ</h3>
+        {t.payments.length === 0 ? (
+          <p className="muted small">እስካሁን የተመዘገበ ክፍያ የለም።</p>
+        ) : (
+          <ul>
+            {[...t.payments].reverse().map((p) => (
+              <li key={p.id}>
+                <span><b>{p.cycle} ወር</b> · {money(p.amount)}</span>
+                <span className="muted small" style={{ textAlign: "right" }}>
+                  {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d })} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TenantPortal({ tenants, loading }) {
+  // One login can own several rooms (e.g. a company with 2 rooms): show every row linked to it.
   return (
     <div className="wrap">
       <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
@@ -193,51 +239,10 @@ function TenantPortal({ tenants, loading }) {
 
       {loading ? (
         <div className="empty">በመጫን ላይ...</div>
-      ) : !t ? (
+      ) : tenants.length === 0 ? (
         <div className="empty">ከመለያዎ ጋር የተገናኘ የተከራይ መረጃ አልተገኘም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</div>
       ) : (
-        <>
-          <div className="filterbar" style={{ gap: 10 }}>
-            <h2 style={{ margin: 0 }}>{t.name}</h2>
-            <div className="sub">{t.room || "—"} · {t.floor}{t.phone ? " · 0" + t.phone : ""}</div>
-            <div><span className={`pill ${s.cls}`}>{s.label}</span></div>
-          </div>
-
-          <section className="stats" style={{ marginTop: 16 }}>
-            <div className="stat"><b style={{ fontSize: 20 }}>{t.contractStart || "—"}</b><span>ውል የጀመረበት</span></div>
-            <div className="stat"><b style={{ fontSize: 20 }}>{t.contractEnd || "—"}</b><span>ውል የሚያበቃበት</span></div>
-            <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(t.payEnd)}</b><span>ክፍያ የሚያበቃበት</span></div>
-            <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt3)}</b><span>የ3 ወር ክፍያ</span></div>
-            {t.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt6)}</b><span>የ6 ወር ክፍያ</span></div>}
-          </section>
-
-          {t.prevAmt3 != null && t.amt3 != null && t.amt3 > t.prevAmt3 && (
-            <div className="inc-card">
-              <h3>አዲስ ኪራይ ጭማሪ</h3>
-              <div className="inc-row"><span>ቀድሞ የነበረ የ3 ወር ክፍያ</span><b>{money(t.prevAmt3)}</b></div>
-              <div className="inc-row"><span>ጭማሪ</span><b>+ {money(t.amt3 - t.prevAmt3)}</b></div>
-              <div className="inc-row inc-total"><span>አዲስ ጠቅላላ የ3 ወር ክፍያ</span><b>{money(t.amt3)}</b></div>
-            </div>
-          )}
-
-          <div className="hist">
-            <h3>የክፍያ ታሪክ</h3>
-            {t.payments.length === 0 ? (
-              <p className="muted small">እስካሁን የተመዘገበ ክፍያ የለም።</p>
-            ) : (
-              <ul>
-                {[...t.payments].reverse().map((p) => (
-                  <li key={p.id}>
-                    <span><b>{p.cycle} ወር</b> · {money(p.amount)}</span>
-                    <span className="muted small" style={{ textAlign: "right" }}>
-                      {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d })} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
+        tenants.map((t) => <TenantCard key={t.id} t={t} />)
       )}
     </div>
   );
