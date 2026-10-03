@@ -243,6 +243,16 @@ function TenantPortal({ tenants, loading }) {
   );
 }
 
+// Tenants without an email log in with their phone number (stored as <digits>@tenants.invalid)
+function toLoginEmail(input) {
+  const v = String(input || "").toLowerCase().trim();
+  if (v.includes("@")) return v;
+  let d = v.replace(/\D/g, "");
+  if (d.startsWith("251")) d = d.slice(3);
+  d = d.replace(/^0+/, "");
+  return d ? `${d}@tenants.invalid` : v;
+}
+
 // ----------------------------------------------------------------------
 // Login (Username & Password, Show/Hide, Forgot Password)
 // ----------------------------------------------------------------------
@@ -258,7 +268,7 @@ function Login({ onDone }) {
     setBusy(true); setError(null); setInfoMsg(null);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: username.toLowerCase().trim(),
+      email: toLoginEmail(username),
       password,
     });
 
@@ -270,7 +280,11 @@ function Login({ onDone }) {
   async function handleForgotPassword() {
     const emailInput = username.toLowerCase().trim();
     if (!emailInput) {
-      setError("እባክዎ በመጀመሪያ ኢሜይልዎን (መግቢያ ስም) ያስገቡ።");
+      setError("እባክዎ በመጀመሪያ ኢሜይልዎን ያስገቡ።");
+      return;
+    }
+    if (!emailInput.includes("@")) {
+      setError("በስልክ ቁጥር ለሚገቡ ተከራዮች የይለፍ ቃል የሚቀየረው በአስተዳዳሪው በኩል ነው። እባክዎ አስተዳዳሪውን ያነጋግሩ።");
       return;
     }
     setBusy(true); setError(null); setInfoMsg(null);
@@ -291,7 +305,7 @@ function Login({ onDone }) {
         <h1>በረካ ህንፃ</h1>
         <p className="sub">ለመቀጠል መግቢያ ስምዎን እና የይለፍ ቃል ያስገቡ</p>
 
-        <label htmlFor="username">መግቢያ ስም (Username / Email)</label>
+        <label htmlFor="username">ኢሜይል ወይም ስልክ ቁጥር (Email / Phone)</label>
         <input
           id="username"
           type="text"
