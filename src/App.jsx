@@ -1,27 +1,11 @@
 import './styles.css'; 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { MONTHS, addMonths, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
+import { MONTHS, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
 import ReceiptModal from "./pdf/ReceiptModal";
 
 function money(n) {
   return n == null ? "—" : Number(n).toLocaleString("en-US") + " ብር";
-}
-
-/* Safety check before a payment is recorded: the cycle must have a price,
-   and the owner must confirm name, amount and the new period. */
-function confirmPayment(t, cycle, onFlash) {
-  const amt = cycle === 3 ? t.amt3 : t.amt6;
-  if (amt == null || Number(amt) <= 0) {
-    onFlash(`ለ${cycle} ወር የክፍያ መጠን አልተመዘገበም። መጀመሪያ መጠኑን ያስገቡና ያስቀምጡ።`, false);
-    return false;
-  }
-  const period = t.payEnd
-    ? `${fmtEth(t.payEnd)} → ${fmtEth(addMonths(t.payEnd, cycle))}`
-    : "";
-  return window.confirm(
-    `${t.name}\n${cycle} ወር · ${money(amt)}\n${period}\n\nክፍያው ይመዝገብ?`
-  );
 }
 
 function errText(err) {
@@ -581,7 +565,6 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   }
 
   async function recordPayment(cycle) {
-    if (!confirmPayment(t, cycle, onFlash)) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: t.id, p_cycle: cycle });
     setBusy(false);
@@ -712,9 +695,8 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 
           <div className="pay drawer-actions" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              {t.amt3 != null && <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>}
-              {t.amt6 != null && <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>}
-              {t.amt3 == null && t.amt6 == null && <span className="sub">የክፍያ መጠን አልተመዘገበም</span>}
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>
+              <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
@@ -1124,7 +1106,6 @@ export default function App() {
                         <div className="pay">
                           <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
                           <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
-                          {t.amt3 == null && t.amt6 == null && <span className="sub">መጠን አልተመዘገበም</span>}
                         </div>
                       </td>
                     )}
@@ -1178,9 +1159,7 @@ export default function App() {
 function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
   const [busy, setBusy] = useState(false);
   const amt = cycle === 3 ? tenant.amt3 : tenant.amt6;
-  if (amt == null) return null; // no price for this cycle: no button
   async function click() {
-    if (!confirmPayment(tenant, cycle, onFlash)) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: tenant.id, p_cycle: cycle });
     setBusy(false);
