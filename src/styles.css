@@ -589,3 +589,20 @@ button.tab:nth-child(11) {
 .btn.btn-1y{background:#D4A017;color:#2B1D00;border:1px solid #B8860B;font-weight:700}
 .btn.btn-1y:hover{background:#B8860B;color:#fff}
 .btn.btn-save:disabled,.btn.btn-6m:disabled,.btn.btn-1y:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== Tenant payment + Telegram panel ===== */
+.paypanel{margin:8px 0 40px}
+.paypanel h2{margin:0 0 6px;font-size:18px}
+.bankcard{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--ink);border-radius:var(--radius);padding:14px 16px;margin:12px 0;box-shadow:var(--shadow)}
+.bankcard.bank-1{border-left-color:var(--accent)}
+.bank-top{display:flex;justify-content:space-between;align-items:center;color:var(--ink-soft);font-size:12.5px}
+.bank-top em{font-style:normal;background:var(--panel-2);border-radius:999px;padding:2px 10px;font-weight:600}
+.bank-name{display:block;font-size:16px;margin:2px 0 8px}
+.bankcard small{display:block;color:var(--ink-soft);font-size:12.5px}
+.bank-num{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 8px}
+.bank-num code{font:700 clamp(18px,5.2vw,26px)/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;color:var(--ink);word-break:break-all}
+.paysteps{margin:14px 0;padding-left:20px;font-size:14.5px}
+.tgbtn{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;padding:14px 20px;border-radius:999px;background:#229ed9;color:#fff;font-weight:700;text-decoration:none;box-shadow:0 8px 18px rgba(34,158,217,.35)}
+.tgbtn:hover{background:#1b8bc0}
+.tgbtn svg{width:22px;height:22px;fill:#fff;flex:none}
+.paynote{text-align:center;margin-top:10px}

@@ -8,6 +8,15 @@ function money(n) {
   return n == null ? "—" : Number(n).toLocaleString("en-US") + " ብር";
 }
 
+// ----------------------------------------------------------------------
+// Payment details shown to tenants. Fill in the building's REAL accounts.
+// ----------------------------------------------------------------------
+const TELEGRAM = "iyad06";
+const BANKS = [
+  // { bank: "Commercial Bank of Ethiopia", number: "1000 0000 0000 0", holder: "Account holder name" },
+  // { bank: "Buna International Bank",     number: "1929 0000 0000 0", holder: "Account holder name" },
+];
+
 const ROLES = ["owner", "viewer", "tenant"];
 const safeRole = (r) => (ROLES.includes(r) ? r : "none");
 
@@ -226,6 +235,71 @@ function TenantCard({ t }) {
   );
 }
 
+// ----------------------------------------------------------------------
+// Tenant payment + contact panel (bank accounts, Telegram with a prefilled message)
+// ----------------------------------------------------------------------
+const PLANE_PATH = "M21.9 3.6 2.7 11c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23 4.9c.3-1.3-.5-1.9-1.1-1.3zM8.5 13.3l9.9-6.2c.5-.3.9-.1.5.2l-8.1 7.3-.3 3.4-2-4.7z";
+
+function PayPanel({ tenants }) {
+  const [copied, setCopied] = useState(null);
+  const name = tenants[0]?.name || "";
+  const rooms = tenants.map((t) => t.room).filter(Boolean).join(", ");
+  const msg = `ሰላም፣\nስሜ፦ ${name}\nየክፍል ቁጥር፦ ${rooms}\nየክፍያ ደረሰኝ ልኬያለሁ።`;
+  const link = `https://t.me/${TELEGRAM}?text=${encodeURIComponent(msg)}`;
+
+  async function copy(num, i) {
+    const digits = num.replace(/\s/g, "");
+    try {
+      await navigator.clipboard.writeText(digits);
+    } catch {
+      const a = document.createElement("textarea");
+      a.value = digits; a.style.position = "fixed"; a.style.opacity = "0";
+      document.body.appendChild(a); a.select();
+      try { document.execCommand("copy"); } catch { /* ignore */ }
+      a.remove();
+    }
+    setCopied(i);
+    setTimeout(() => setCopied(null), 1800);
+  }
+
+  return (
+    <section className="paypanel" aria-labelledby="paytitle">
+      <h2 id="paytitle">💳 ክፍያ እና ጥያቄ</h2>
+
+      {BANKS.length > 0 && (
+        <>
+          <p className="muted small">የኪራይ ክፍያዎን ከታች ከተዘረዘሩት የባንክ ሂሳቦች በአንዱ ይላኩ።</p>
+          {BANKS.map((b, i) => (
+            <div key={i} className={`bankcard bank-${i % 2}`}>
+              <div className="bank-top"><span>ባንክ</span><em>ሂሳብ {i + 1}</em></div>
+              <b className="bank-name">{b.bank}</b>
+              <small>የሂሳብ ቁጥር</small>
+              <div className="bank-num">
+                <code>{b.number}</code>
+                <button type="button" className="btn btn-ghost" onClick={() => copy(b.number, i)}>
+                  {copied === i ? "ተቀድቷል ✓" : "ቅዳ"}
+                </button>
+              </div>
+              {b.holder && <small>የሂሳቡ ባለቤት፦ {b.holder}</small>}
+            </div>
+          ))}
+          <ol className="paysteps">
+            <li>ክፍያውን በባንክ ይላኩ።</li>
+            <li>የደረሰኙን ወይም የ SMS ማረጋገጫውን ፎቶ (screenshot) ያንሱ።</li>
+            <li>በ Telegram ከስምዎና ከክፍል ቁጥርዎ ጋር ይላኩልን።</li>
+          </ol>
+        </>
+      )}
+
+      <a className="tgbtn" href={link} target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d={PLANE_PATH} /></svg>
+        <span>ደረሰኝ ይላኩ / ጥያቄ ይጠይቁ (Telegram)</span>
+      </a>
+      <p className="muted small paynote">ትክክለኛው የ Telegram አድራሻ፦ <b>@{TELEGRAM}</b></p>
+    </section>
+  );
+}
+
 function TenantPortal({ tenants, loading, onChangePw }) {
   // One login can own several rooms (e.g. a company with 2 rooms): show every row linked to it.
   return (
@@ -246,7 +320,10 @@ function TenantPortal({ tenants, loading, onChangePw }) {
       ) : tenants.length === 0 ? (
         <div className="empty">ከመለያዎ ጋር የተገናኘ የተከራይ መረጃ አልተገኘም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</div>
       ) : (
-        tenants.map((t) => <TenantCard key={t.id} t={t} />)
+        <>
+          {tenants.map((t) => <TenantCard key={t.id} t={t} />)}
+          <PayPanel tenants={tenants} />
+        </>
       )}
     </div>
   );
