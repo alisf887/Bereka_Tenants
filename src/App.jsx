@@ -349,6 +349,146 @@ function Login({ onDone }) {
 }
 
 // ----------------------------------------------------------------------
+// Two-factor authentication (TOTP authenticator app) for the owner
+// ----------------------------------------------------------------------
+function MfaChallenge({ onDone }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null); setBusy(true);
+    const { data, error: e1 } = await supabase.auth.mfa.listFactors();
+    const factor = data?.totp?.[0];
+    if (e1 || !factor) { setBusy(false); setError(errText(e1)); return; }
+    const { error: e2 } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: code.trim() });
+    setBusy(false);
+    if (e2) { setError("ኮዱ ትክክል አይደለም ወይም ጊዜው አልፏል። እንደገና ይሞክሩ።"); return; }
+    onDone();
+  }
+
+  return (
+    <div className="loginwrap">
+      <form className="loginbox" onSubmit={submit} noValidate>
+        <div className="login-mark" aria-hidden="true">🔐</div>
+        <h1>ሁለተኛ ደረጃ ማረጋገጫ</h1>
+        <p className="sub">በ Authenticator መተግበሪያዎ ላይ ያለውን 6 ዲጂት ኮድ ያስገቡ</p>
+
+        <label htmlFor="mfacode">6 ዲጂት ኮድ</label>
+        <input
+          id="mfacode" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+          autoComplete="one-time-code" autoFocus value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+        />
+
+        <button className="btn btn-primary" type="submit" disabled={busy || code.length !== 6}>
+          {busy ? "..." : "አረጋግጥ (Verify)"}
+        </button>
+        <button type="button" className="forgot" onClick={() => supabase.auth.signOut()}>ውጣ</button>
+
+        {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
+      </form>
+    </div>
+  );
+}
+
+function MfaSetup({ onDone }) {
+  const [state, setState] = useState("loading"); // loading | enabled | enroll | done | error
+  const [factorId, setFactorId] = useState(null);
+  const [qr, setQr] = useState(null);
+  const [secret, setSecret] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error: e1 } = await supabase.auth.mfa.listFactors();
+      if (e1) { setError(errText(e1)); setState("error"); return; }
+      if (data.totp.length > 0) { setFactorId(data.totp[0].id); setState("enabled"); return; }
+      // remove abandoned, never-verified factors before creating a new one
+      for (const f of data.all.filter((x) => x.status === "unverified")) {
+        await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+      const { data: en, error: e2 } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Bereka owner " + Date.now(),
+      });
+      if (e2) { setError(errText(e2)); setState("error"); return; }
+      setFactorId(en.id);
+      setQr(en.totp.qr_code);
+      setSecret(en.totp.secret);
+      setState("enroll");
+    })();
+  }, []);
+
+  async function verify(e) {
+    e.preventDefault();
+    setError(null); setBusy(true);
+    const { error: e1 } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: code.trim() });
+    setBusy(false);
+    if (e1) { setError("ኮዱ ትክክል አይደለም። እንደገና ይሞክሩ።"); return; }
+    setState("done");
+  }
+
+  async function disable() {
+    if (!window.confirm("ሁለተኛ ደረጃ ማረጋገጫውን ማጥፋት ይፈልጋሉ?")) return;
+    setBusy(true);
+    const { error: e1 } = await supabase.auth.mfa.unenroll({ factorId });
+    setBusy(false);
+    if (e1) { setError(errText(e1)); return; }
+    onDone();
+  }
+
+  return (
+    <div className="loginwrap">
+      <div className="loginbox">
+        <div className="login-mark" aria-hidden="true">🔐</div>
+        <h1>ባለ2 ደረጃ ጥበቃ</h1>
+
+        {state === "loading" && <p className="sub">በመጫን ላይ...</p>}
+
+        {state === "enroll" && (
+          <form onSubmit={verify} noValidate>
+            <p className="sub">1. Google Authenticator ወይም ተመሳሳይ መተግበሪያ ይክፈቱ። 2. ይህን QR ኮድ ይቃኙ። 3. የሚታየውን 6 ዲጂት ኮድ ያስገቡ።</p>
+            <img src={qr} alt="QR code" style={{ width: 200, height: 200, display: "block", margin: "0 auto 12px", background: "#fff" }} />
+            <p className="sub" style={{ wordBreak: "break-all" }}>
+              መቃኘት ካልተቻለ ይህን ቁልፍ በእጅ ያስገቡ፦ <b>{secret}</b><br />
+              ይህን ቁልፍ በጥንቃቄ ያስቀምጡ (ስልክዎ ቢጠፋ ለማገገም ይረዳል)።
+            </p>
+            <label htmlFor="mfasetup">6 ዲጂት ኮድ</label>
+            <input
+              id="mfasetup" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+              autoComplete="one-time-code" value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+            <button className="btn btn-primary" type="submit" disabled={busy || code.length !== 6}>
+              {busy ? "..." : "አረጋግጥ እና አብራ"}
+            </button>
+          </form>
+        )}
+
+        {state === "enabled" && (
+          <div>
+            <p className="sub">ሁለተኛ ደረጃ ማረጋገጫ በርቷል። ✅</p>
+            <button className="btn btn-logout" onClick={disable} disabled={busy}>አጥፋ</button>
+          </div>
+        )}
+
+        {state === "done" && <div className="info-ok" role="status">ሁለተኛ ደረጃ ማረጋገጫ በተሳካ ሁኔታ በርቷል። ✅</div>}
+
+        {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
+
+        <button type="button" className="forgot" onClick={onDone}>
+          {state === "done" ? "ወደ ገጹ ተመለስ" : "ተመለስ"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
 // Change password (logged-in user; asks for the current password first)
 // ----------------------------------------------------------------------
 function ChangePassword({ email, onDone }) {
@@ -884,6 +1024,9 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [userRole, setUserRole] = useState(null);
   const [changingPw, setChangingPw] = useState(false);
+  const [settingMfa, setSettingMfa] = useState(false);
+  const [aal, setAal] = useState(null); // { cur, next } assurance level (owner only)
+  const [mfaTick, setMfaTick] = useState(0);
   const { tenants, loading, error, reload } = useTenants();
   const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
   const [drawer, setDrawer] = useState(null);
@@ -922,6 +1065,13 @@ export default function App() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session || userRole !== "owner") { setAal(null); return; }
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+      setAal({ cur: data?.currentLevel || "aal1", next: data?.nextLevel || "aal1" });
+    });
+  }, [session, userRole, mfaTick]);
 
   useEffect(() => {
     const el = document.documentElement;
@@ -1037,6 +1187,16 @@ export default function App() {
 
   if (userRole === null) return null; // role still loading
 
+  if (userRole === "owner") {
+    if (aal === null) return null; // checking two-factor status
+    if (aal.next === "aal2" && aal.cur !== "aal2") {
+      return <MfaChallenge onDone={() => setMfaTick((t) => t + 1)} />;
+    }
+    if (settingMfa) {
+      return <MfaSetup onDone={() => { setSettingMfa(false); setMfaTick((t) => t + 1); }} />;
+    }
+  }
+
   if (changingPw) {
     return <ChangePassword email={session.user.email} onDone={() => setChangingPw(false)} />;
   }
@@ -1077,6 +1237,7 @@ export default function App() {
             <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
             <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
             <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>🔑 ቃል ቀይር</button>
+            {owner && <button className="btn btn-ghost" onClick={() => setSettingMfa(true)}>🔐 ባለ2 ደረጃ</button>}
             <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
           </div>
         </header>
