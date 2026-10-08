@@ -281,13 +281,18 @@ function PayPanel({ tenants }) {
             <span className="bank-chip">ሂሳብ {i + 1}</span>
           </div>
 
+          {b.holder && (
+            <div className="bank-holder">
+              <small>የሂሳቡ ባለቤት</small>
+              <b>{b.holder}</b>
+            </div>
+          )}
+
           <div className="bank-label">የሂሳብ ቁጥር</div>
           <div className="bank-num"><code>{b.number}</code></div>
 
           <div className="bank-foot">
-            <div>
-              {b.holder && (<><small>የሂሳቡ ባለቤት</small><b>{b.holder}</b></>)}
-            </div>
+            <small className="bank-hint">ቁጥሩን ለመቅዳት ይጫኑ</small>
             <button type="button" className={`copybtn${copied === i ? " done" : ""}`} onClick={() => copy(b.number, i)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 {copied === i
