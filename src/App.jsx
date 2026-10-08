@@ -8,6 +8,9 @@ function money(n) {
   return n == null ? "—" : Number(n).toLocaleString("en-US") + " ብር";
 }
 
+const ROLES = ["owner", "viewer", "tenant"];
+const safeRole = (r) => (ROLES.includes(r) ? r : "none");
+
 function errText(err) {
   return err?.message || "ስህተት ተፈጥሯል፤ እንደገና ሞክር።";
 }
@@ -223,7 +226,7 @@ function TenantCard({ t }) {
   );
 }
 
-function TenantPortal({ tenants, loading }) {
+function TenantPortal({ tenants, loading, onChangePw }) {
   // One login can own several rooms (e.g. a company with 2 rooms): show every row linked to it.
   return (
     <div className="wrap">
@@ -233,6 +236,7 @@ function TenantPortal({ tenants, loading }) {
           <div className="sub">ዛሬ <b>{fmtEth(todayEth())} ዓ.ም</b></div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-ghost" onClick={onChangePw}>🔑 ቃል ቀይር</button>
           <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
         </div>
       </header>
@@ -339,6 +343,64 @@ function Login({ onDone }) {
 
         {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
         {infoMsg && <div className="info-ok" role="status">{infoMsg}</div>}
+      </form>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// Change password (logged-in user; asks for the current password first)
+// ----------------------------------------------------------------------
+function ChangePassword({ email, onDone }) {
+  const [cur, setCur] = useState("");
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [error, setError] = useState(null);
+  const [ok, setOk] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+    if (pw1.length < 6) { setError("አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር መሆን አለበት።"); return; }
+    if (pw1 !== pw2) { setError("ሁለቱ የይለፍ ቃሎች አይመሳሰሉም።"); return; }
+    if (pw1 === cur) { setError("አዲሱ የይለፍ ቃል ከአሁኑ የተለየ መሆን አለበት።"); return; }
+
+    setBusy(true);
+    const { error: e1 } = await supabase.auth.signInWithPassword({ email, password: cur });
+    if (e1) { setBusy(false); setError("አሁን ያለው የይለፍ ቃል ትክክል አይደለም።"); return; }
+    const { error: e2 } = await supabase.auth.updateUser({ password: pw1 });
+    setBusy(false);
+    if (e2) { setError(errText(e2)); return; }
+    setOk(true);
+    setCur(""); setPw1(""); setPw2("");
+  }
+
+  return (
+    <div className="loginwrap">
+      <form className="loginbox" onSubmit={submit} noValidate>
+        <div className="login-mark" aria-hidden="true">🔑</div>
+        <h1>የይለፍ ቃል ቀይር</h1>
+        <p className="sub">መጀመሪያ አሁን ያለዎትን የይለፍ ቃል ያስገቡ</p>
+
+        <label htmlFor="curpw">አሁን ያለው የይለፍ ቃል</label>
+        <PasswordField id="curpw" autoComplete="current-password" autoFocus value={cur} onChange={(e) => setCur(e.target.value)} />
+
+        <label htmlFor="chpw1">አዲስ የይለፍ ቃል (ቢያንስ 6 ፊደል/ቁጥር)</label>
+        <PasswordField id="chpw1" autoComplete="new-password" value={pw1} onChange={(e) => setPw1(e.target.value)} />
+
+        <label htmlFor="chpw2">አዲሱን የይለፍ ቃል ድገም</label>
+        <PasswordField id="chpw2" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? "..." : "አስቀምጥ (Save)"}
+        </button>
+        <button type="button" className="forgot" onClick={onDone}>
+          {ok ? "ወደ ገጹ ተመለስ" : "ተመለስ (Cancel)"}
+        </button>
+
+        {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
+        {ok && <div className="info-ok" role="status">የይለፍ ቃልዎ ተቀይሯል።</div>}
       </form>
     </div>
   );
@@ -821,6 +883,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 export default function App() {
   const [session, setSession] = useState(undefined);
   const [userRole, setUserRole] = useState(null);
+  const [changingPw, setChangingPw] = useState(false);
   const { tenants, loading, error, reload } = useTenants();
   const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
   const [drawer, setDrawer] = useState(null);
@@ -839,7 +902,7 @@ export default function App() {
           .select("role")
           .eq("id", data.session.user.id)
           .single();
-        setUserRole(profile?.role || "viewer");
+        setUserRole(safeRole(profile?.role));
       }
     });
 
@@ -852,7 +915,7 @@ export default function App() {
           .select("role")
           .eq("id", s.user.id)
           .single();
-        setUserRole(profile?.role || "viewer");
+        setUserRole(safeRole(profile?.role));
       } else {
         setUserRole(null);
       }
@@ -974,8 +1037,24 @@ export default function App() {
 
   if (userRole === null) return null; // role still loading
 
+  if (changingPw) {
+    return <ChangePassword email={session.user.email} onDone={() => setChangingPw(false)} />;
+  }
+
+  if (userRole === "none") {
+    return (
+      <div className="loginwrap">
+        <div className="loginbox">
+          <h1>በረካ ህንፃ</h1>
+          <p className="sub">መለያዎ ገና ሚና አልተሰጠውም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</p>
+          <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
+        </div>
+      </div>
+    );
+  }
+
   if (userRole === "tenant") {
-    return <TenantPortal tenants={tenants} loading={loading} />;
+    return <TenantPortal tenants={tenants} loading={loading} onChangePw={() => setChangingPw(true)} />;
   }
 
   return (
@@ -997,6 +1076,7 @@ export default function App() {
           <div className="toolbtns">
             <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
             <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
+            <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>🔑 ቃል ቀይር</button>
             <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
           </div>
         </header>
