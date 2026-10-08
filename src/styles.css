@@ -635,3 +635,10 @@ button.tab:nth-child(11) {
 .bank-holder b{display:block;margin-top:2px;font-size:clamp(20px,6vw,26px);font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.2;color:var(--ink)}
 .bank-foot{align-items:center}
 .bank-hint{color:var(--ink-soft);font-size:12px}
+
+/* ===== Language switch (Amharic / English) ===== */
+.langsw{display:inline-flex;border:1px solid var(--accent);border-radius:999px;overflow:hidden}
+.langsw button{font:inherit;font-size:13px;font-weight:700;padding:6px 12px;border:0;background:transparent;color:var(--accent);cursor:pointer}
+.langsw button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.loginwrap{position:relative}
+.loginwrap > .langsw{position:absolute;top:16px;right:16px}

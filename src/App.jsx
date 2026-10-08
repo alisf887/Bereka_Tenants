@@ -1,11 +1,45 @@
 import './styles.css'; 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { MONTHS, fmtEth, statusOf, todayEth } from "./ethiopianCalendar";
+import { MONTHS, fmtEth, statusOf, todayEth, parseEth } from "./ethiopianCalendar";
+import { useI18n, setLang, getLang, translate } from "./i18n";
 import ReceiptModal from "./pdf/ReceiptModal";
 
-function money(n) {
-  return n == null ? "—" : Number(n).toLocaleString("en-US") + " ብር";
+function money(n, lang = "am") {
+  return n == null ? "—" : Number(n).toLocaleString("en-US") + (lang === "en" ? " ETB" : " ብር");
+}
+
+// Contract dates are stored as Amharic text (e.g. "ጥቅምት 20/2019"); show English months in the English interface.
+function fmtDateText(txt, lang) {
+  if (!txt) return "—";
+  if (lang !== "en") return txt;
+  const d = parseEth(txt);
+  return d ? fmtEth(d, "en") : txt;
+}
+
+// Amharic / English switch
+function LangSwitch() {
+  const { lang } = useI18n();
+  return (
+    <div className="langsw" role="group" aria-label="Language">
+      <button type="button" aria-pressed={lang === "am"} onClick={() => setLang("am")}>አማርኛ</button>
+      <button type="button" aria-pressed={lang === "en"} onClick={() => setLang("en")}>English</button>
+    </div>
+  );
+}
+
+function NoAccess() {
+  const { t } = useI18n();
+  return (
+    <div className="loginwrap">
+      <LangSwitch />
+      <div className="loginbox">
+        <h1>{t("app")}</h1>
+        <p className="sub">{t("noAccess")}</p>
+        <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>{t("logout")}</button>
+      </div>
+    </div>
+  );
 }
 
 // ----------------------------------------------------------------------
@@ -21,7 +55,7 @@ const ROLES = ["owner", "viewer", "tenant"];
 const safeRole = (r) => (ROLES.includes(r) ? r : "none");
 
 function errText(err) {
-  return err?.message || "ስህተት ተፈጥሯል፤ እንደገና ሞክር።";
+  return err?.message || translate(getLang(), "errGeneric");
 }
 
 // ----------------------------------------------------------------------
@@ -144,6 +178,7 @@ const STATUS_STYLES = {
 // Password field with SVG show/hide icon (emoji icons often render blank on Windows)
 // ----------------------------------------------------------------------
 function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
+  const { t } = useI18n();
   const [show, setShow] = useState(false);
   return (
     <div className="pw">
@@ -160,9 +195,9 @@ function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
         type="button"
         className="pw-toggle"
         onClick={() => setShow((s) => !s)}
-        aria-label={show ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
+        aria-label={show ? t("hidePw") : t("showPw")}
         aria-pressed={show}
-        title={show ? "የይለፍ ቃል ደብቅ" : "የይለፍ ቃል አሳይ"}
+        title={show ? t("hidePw") : t("showPw")}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -187,44 +222,45 @@ function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
 // Tenant portal: a tenant sees ONLY their own record.
 // (The database also enforces this with Row Level Security.)
 // ----------------------------------------------------------------------
-function TenantCard({ t }) {
-  const s = statusOf(t.payEnd);
+function TenantCard({ t: tn }) {
+  const { t, lang } = useI18n();
+  const s = statusOf(tn.payEnd, lang);
   return (
     <section style={{ marginBottom: 28 }}>
       <div className="filterbar" style={{ gap: 10 }}>
-        <h2 style={{ margin: 0 }}>{t.name}</h2>
-        <div className="sub">{t.room || "—"} · {t.floor}{t.phone ? " · 0" + t.phone : ""}</div>
+        <h2 style={{ margin: 0 }}>{tn.name}</h2>
+        <div className="sub">{tn.room || "—"} · {tn.floor}{tn.phone ? " · 0" + tn.phone : ""}</div>
         <div><span className={`pill ${s.cls}`}>{s.label}</span></div>
       </div>
 
       <div className="stats" style={{ marginTop: 16 }}>
-        <div className="stat"><b style={{ fontSize: 20 }}>{t.contractStart || "—"}</b><span>ውል የጀመረበት</span></div>
-        <div className="stat"><b style={{ fontSize: 20 }}>{t.contractEnd || "—"}</b><span>ውል የሚያበቃበት</span></div>
-        <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(t.payEnd)}</b><span>ክፍያ የሚያበቃበት</span></div>
-        <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt3)}</b><span>የ3 ወር ክፍያ</span></div>
-        {t.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(t.amt6)}</b><span>የ6 ወር ክፍያ</span></div>}
+        <div className="stat"><b style={{ fontSize: 20 }}>{fmtDateText(tn.contractStart, lang)}</b><span>{t("contractStart")}</span></div>
+        <div className="stat"><b style={{ fontSize: 20 }}>{fmtDateText(tn.contractEnd, lang)}</b><span>{t("contractEnd")}</span></div>
+        <div className="stat"><b style={{ fontSize: 20 }}>{fmtEth(tn.payEnd, lang)}</b><span>{t("payEnd")}</span></div>
+        <div className="stat accent"><b style={{ fontSize: 20 }}>{money(tn.amt3, lang)}</b><span>{t("amt3")}</span></div>
+        {tn.amt6 != null && <div className="stat accent"><b style={{ fontSize: 20 }}>{money(tn.amt6, lang)}</b><span>{t("amt6")}</span></div>}
       </div>
 
-      {t.prevAmt3 != null && t.amt3 != null && t.amt3 > t.prevAmt3 && (
+      {tn.prevAmt3 != null && tn.amt3 != null && tn.amt3 > tn.prevAmt3 && (
         <div className="inc-card">
-          <h3>አዲስ ኪራይ ጭማሪ</h3>
-          <div className="inc-row"><span>ቀድሞ የነበረ የ3 ወር ክፍያ</span><b>{money(t.prevAmt3)}</b></div>
-          <div className="inc-row"><span>ጭማሪ</span><b>+ {money(t.amt3 - t.prevAmt3)}</b></div>
-          <div className="inc-row inc-total"><span>አዲስ ጠቅላላ የ3 ወር ክፍያ</span><b>{money(t.amt3)}</b></div>
+          <h3>{t("incTitle")}</h3>
+          <div className="inc-row"><span>{t("incPrev3")}</span><b>{money(tn.prevAmt3, lang)}</b></div>
+          <div className="inc-row"><span>{t("incInc")}</span><b>+ {money(tn.amt3 - tn.prevAmt3, lang)}</b></div>
+          <div className="inc-row inc-total"><span>{t("incTotal3")}</span><b>{money(tn.amt3, lang)}</b></div>
         </div>
       )}
 
       <div className="hist">
-        <h3>የክፍያ ታሪክ</h3>
-        {t.payments.length === 0 ? (
-          <p className="muted small">እስካሁን የተመዘገበ ክፍያ የለም።</p>
+        <h3>{t("history")}</h3>
+        {tn.payments.length === 0 ? (
+          <p className="muted small">{t("noPay")}</p>
         ) : (
           <ul>
-            {[...t.payments].reverse().map((p) => (
+            {[...tn.payments].reverse().map((p) => (
               <li key={p.id}>
-                <span><b>{p.cycle} ወር</b> · {money(p.amount)}</span>
+                <span><b>{t("cycle", { n: p.cycle })}</b> · {money(p.amount, lang)}</span>
                 <span className="muted small" style={{ textAlign: "right" }}>
-                  {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d })} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d })}
+                  {fmtEth({ y: p.from_y, m: p.from_m, d: p.from_d }, lang)} → {fmtEth({ y: p.to_y, m: p.to_m, d: p.to_d }, lang)}
                 </span>
               </li>
             ))}
@@ -241,10 +277,11 @@ function TenantCard({ t }) {
 const PLANE_PATH = "M21.9 3.6 2.7 11c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23 4.9c.3-1.3-.5-1.9-1.1-1.3zM8.5 13.3l9.9-6.2c.5-.3.9-.1.5.2l-8.1 7.3-.3 3.4-2-4.7z";
 
 function PayPanel({ tenants }) {
+  const { t, lang } = useI18n();
   const [copied, setCopied] = useState(null);
   const name = tenants[0]?.name || "";
-  const rooms = tenants.map((t) => t.room).filter(Boolean).join(", ");
-  const msg = `ሰላም፣\nስሜ፦ ${name}\nየክፍል ቁጥር፦ ${rooms}\nየክፍያ ደረሰኝ ልኬያለሁ።`;
+  const rooms = tenants.map((x) => x.room).filter(Boolean).join(", ");
+  const msg = t("tgMsg", { name, rooms });
   const link = `https://t.me/${TELEGRAM}?text=${encodeURIComponent(msg)}`;
 
   async function copy(num, i) {
@@ -265,9 +302,9 @@ function PayPanel({ tenants }) {
   return (
     <section className="paypanel" aria-labelledby="paytitle">
       <div className="pay-hero">
-        <span className="pay-eyebrow">በባንክ ማስተላለፍ ክፍያ · PAYMENT BY BANK TRANSFER</span>
-        <h2 id="paytitle">ክፍያ እና ጥያቄ</h2>
-        {BANKS.length > 0 && <p>የኪራይ ክፍያዎን ከታች ከተዘረዘሩት ሂሳቦች በአንዱ ይላኩ።</p>}
+        <span className="pay-eyebrow">{t("payEyebrow")}</span>
+        <h2 id="paytitle">{t("payTitle")}</h2>
+        {BANKS.length > 0 && <p>{t("payIntro")}</p>}
       </div>
 
       {BANKS.map((b, i) => (
@@ -275,31 +312,31 @@ function PayPanel({ tenants }) {
           <div className="bank-head">
             <span className="bank-mono" aria-hidden="true">{b.short || b.bank.slice(0, 3).toUpperCase()}</span>
             <div>
-              <small>ባንክ</small>
+              <small>{t("bank")}</small>
               <b className="bank-name">{b.bank}</b>
             </div>
-            <span className="bank-chip">ሂሳብ {i + 1}</span>
+            <span className="bank-chip">{t("accountN", { n: i + 1 })}</span>
           </div>
 
           {b.holder && (
             <div className="bank-holder">
-              <small>የሂሳቡ ባለቤት</small>
+              <small>{t("holder")}</small>
               <b>{b.holder}</b>
             </div>
           )}
 
-          <div className="bank-label">የሂሳብ ቁጥር</div>
+          <div className="bank-label">{t("accNumber")}</div>
           <div className="bank-num"><code>{b.number}</code></div>
 
           <div className="bank-foot">
-            <small className="bank-hint">ቁጥሩን ለመቅዳት ይጫኑ</small>
+            <small className="bank-hint">{t("copyHint")}</small>
             <button type="button" className={`copybtn${copied === i ? " done" : ""}`} onClick={() => copy(b.number, i)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 {copied === i
                   ? <path d="M20 6 9 17l-5-5" />
                   : <><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>}
               </svg>
-              {copied === i ? "ተቀድቷል" : "ቅዳ"}
+              {copied === i ? t("copied") : t("copy")}
             </button>
           </div>
         </article>
@@ -311,51 +348,53 @@ function PayPanel({ tenants }) {
             <span className="pay-check" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
             </span>
-            <span><b>ክፍያውን ከላኩ በኋላ</b> የደረሰኙን ወይም የ SMS ማረጋገጫውን በ Telegram ያሳዩን።</span>
+            <span><b>{t("okBold")}</b>{t("okRest")}</span>
           </div>
           <ol className="paysteps">
-            <li>ክፍያውን በባንክ ይላኩ።</li>
-            <li>የደረሰኙን ወይም የ SMS ማረጋገጫውን ፎቶ (screenshot) ያንሱ።</li>
-            <li>በ Telegram ከስምዎና ከክፍል ቁጥርዎ ጋር ይላኩልን።</li>
+            <li>{t("step1")}</li>
+            <li>{t("step2")}</li>
+            <li>{t("step3")}</li>
           </ol>
         </>
       )}
 
       <a className="tgbtn" href={link} target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={PLANE_PATH} /></svg>
-        <span>የክፍያ ደረሰኝ ይላኩ ወይም ጥያቄ ካለዎት ይጠይቁ</span>
+        <span>{t("tgBtn")}</span>
       </a>
-      <p className="muted small paynote">ትክክለኛው የ Telegram አድራሻ፦ <b>@{TELEGRAM}</b></p>
+      <p className="muted small paynote">{t("tgOfficial")} <b>@{TELEGRAM}</b></p>
       <p className="muted small paynote">
-        አልተከፈተም? <a href={`https://web.telegram.org/k/#@${TELEGRAM}`} target="_blank" rel="noopener noreferrer">በድር ላይ በ Telegram ይክፈቱ</a>
+        {t("tgNotOpen")} <a href={`https://web.telegram.org/k/#@${TELEGRAM}`} target="_blank" rel="noopener noreferrer">{t("tgWeb")}</a>
       </p>
-      <p className="paythanks">እናመሰግናለን!</p>
+      <p className="paythanks">{t("thanks")}</p>
     </section>
   );
 }
 
 function TenantPortal({ tenants, loading, onChangePw }) {
   // One login can own several rooms (e.g. a company with 2 rooms): show every row linked to it.
+  const { t, lang } = useI18n();
   return (
     <div className="wrap">
       <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
         <div>
-          <h1>በረካ ህንፃ — የእኔ መረጃ</h1>
-          <div className="sub">ዛሬ <b>{fmtEth(todayEth())} ዓ.ም</b></div>
+          <h1>{t("myInfo")}</h1>
+          <div className="sub">{t("today")} <b>{fmtEth(todayEth(), lang)} {t("era")}</b></div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn btn-ghost" onClick={onChangePw}>🔑 ቃል ቀይር</button>
-          <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <LangSwitch />
+          <button className="btn btn-ghost" onClick={onChangePw}>{t("changePw")}</button>
+          <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>{t("logout")}</button>
         </div>
       </header>
 
       {loading ? (
-        <div className="empty">በመጫን ላይ...</div>
+        <div className="empty">{t("loading")}</div>
       ) : tenants.length === 0 ? (
-        <div className="empty">ከመለያዎ ጋር የተገናኘ የተከራይ መረጃ አልተገኘም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</div>
+        <div className="empty">{t("noTenantData")}</div>
       ) : (
         <>
-          {tenants.map((t) => <TenantCard key={t.id} t={t} />)}
+          {tenants.map((x) => <TenantCard key={x.id} t={x} />)}
           <PayPanel tenants={tenants} />
         </>
       )}
@@ -377,6 +416,7 @@ function toLoginEmail(input) {
 // Login (Username & Password, Show/Hide, Forgot Password)
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -393,18 +433,18 @@ function Login({ onDone }) {
     });
 
     setBusy(false);
-    if (error) setError("የተሳሳተ መግቢያ ስም ወይም የይለፍ ቃል አሉ።");
+    if (error) setError(t("badLogin"));
     else onDone();
   }
 
   async function handleForgotPassword() {
     const emailInput = username.toLowerCase().trim();
     if (!emailInput) {
-      setError("እባክዎ በመጀመሪያ ኢሜይልዎን ያስገቡ።");
+      setError(t("needEmail"));
       return;
     }
     if (!emailInput.includes("@")) {
-      setError("በስልክ ቁጥር ለሚገቡ ተከራዮች የይለፍ ቃል የሚቀየረው በአስተዳዳሪው በኩል ነው። እባክዎ አስተዳዳሪውን ያነጋግሩ።");
+      setError(t("phoneReset"));
       return;
     }
     setBusy(true); setError(null); setInfoMsg(null);
@@ -415,17 +455,18 @@ function Login({ onDone }) {
 
     setBusy(false);
     if (error) setError(errText(error));
-    else setInfoMsg("የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል። ኢሜይልዎን ይመልከቱ (Spam ጭምር)።");
+    else setInfoMsg(t("resetSent"));
   }
 
   return (
     <div className="loginwrap">
+      <LangSwitch />
       <form className="loginbox" onSubmit={submit} noValidate>
         <div className="login-mark" aria-hidden="true">🏢</div>
-        <h1>በረካ ህንፃ</h1>
-        <p className="sub">ለመቀጠል መግቢያ ስምዎን እና የይለፍ ቃል ያስገቡ</p>
+        <h1>{t("app")}</h1>
+        <p className="sub">{t("loginSub")}</p>
 
-        <label htmlFor="username">ኢሜይል ወይም ስልክ ቁጥር (Email / Phone)</label>
+        <label htmlFor="username">{t("userLabel")}</label>
         <input
           id="username"
           type="text"
@@ -436,7 +477,7 @@ function Login({ onDone }) {
           onChange={(e) => setUsername(e.target.value)}
         />
 
-        <label htmlFor="password">የይለፍ ቃል (Password)</label>
+        <label htmlFor="password">{t("passLabel")}</label>
         <PasswordField
           id="password"
           autoComplete="current-password"
@@ -445,11 +486,11 @@ function Login({ onDone }) {
         />
 
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "..." : "ግባ (Login)"}
+          {busy ? "..." : t("loginBtn")}
         </button>
 
         <button type="button" className="forgot" onClick={handleForgotPassword} disabled={busy}>
-          የይለፍ ቃል ረስተዋል? (Forgot Password?)
+          {t("forgot")}
         </button>
 
         {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
@@ -603,6 +644,7 @@ function MfaSetup({ onDone }) {
 // Change password (logged-in user; asks for the current password first)
 // ----------------------------------------------------------------------
 function ChangePassword({ email, onDone }) {
+  const { t } = useI18n();
   const [cur, setCur] = useState("");
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
@@ -613,13 +655,13 @@ function ChangePassword({ email, onDone }) {
   async function submit(e) {
     e.preventDefault();
     setError(null);
-    if (pw1.length < 6) { setError("አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር መሆን አለበት።"); return; }
-    if (pw1 !== pw2) { setError("ሁለቱ የይለፍ ቃሎች አይመሳሰሉም።"); return; }
-    if (pw1 === cur) { setError("አዲሱ የይለፍ ቃል ከአሁኑ የተለየ መሆን አለበት።"); return; }
+    if (pw1.length < 6) { setError(t("newPwShort")); return; }
+    if (pw1 !== pw2) { setError(t("pwMismatch")); return; }
+    if (pw1 === cur) { setError(t("samePw")); return; }
 
     setBusy(true);
     const { error: e1 } = await supabase.auth.signInWithPassword({ email, password: cur });
-    if (e1) { setBusy(false); setError("አሁን ያለው የይለፍ ቃል ትክክል አይደለም።"); return; }
+    if (e1) { setBusy(false); setError(t("curWrong")); return; }
     const { error: e2 } = await supabase.auth.updateUser({ password: pw1 });
     setBusy(false);
     if (e2) { setError(errText(e2)); return; }
@@ -629,29 +671,30 @@ function ChangePassword({ email, onDone }) {
 
   return (
     <div className="loginwrap">
+      <LangSwitch />
       <form className="loginbox" onSubmit={submit} noValidate>
         <div className="login-mark" aria-hidden="true">🔑</div>
-        <h1>የይለፍ ቃል ቀይር</h1>
-        <p className="sub">መጀመሪያ አሁን ያለዎትን የይለፍ ቃል ያስገቡ</p>
+        <h1>{t("chTitle")}</h1>
+        <p className="sub">{t("chSub")}</p>
 
-        <label htmlFor="curpw">አሁን ያለው የይለፍ ቃል</label>
+        <label htmlFor="curpw">{t("curPw")}</label>
         <PasswordField id="curpw" autoComplete="current-password" autoFocus value={cur} onChange={(e) => setCur(e.target.value)} />
 
-        <label htmlFor="chpw1">አዲስ የይለፍ ቃል (ቢያንስ 6 ፊደል/ቁጥር)</label>
+        <label htmlFor="chpw1">{t("newPw6")}</label>
         <PasswordField id="chpw1" autoComplete="new-password" value={pw1} onChange={(e) => setPw1(e.target.value)} />
 
-        <label htmlFor="chpw2">አዲሱን የይለፍ ቃል ድገም</label>
+        <label htmlFor="chpw2">{t("repeatNew")}</label>
         <PasswordField id="chpw2" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
 
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "..." : "አስቀምጥ (Save)"}
+          {busy ? "..." : t("saveBtn")}
         </button>
         <button type="button" className="forgot" onClick={onDone}>
-          {ok ? "ወደ ገጹ ተመለስ" : "ተመለስ (Cancel)"}
+          {ok ? t("backToPage") : t("cancel")}
         </button>
 
         {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
-        {ok && <div className="info-ok" role="status">የይለፍ ቃልዎ ተቀይሯል።</div>}
+        {ok && <div className="info-ok" role="status">{t("pwChanged")}</div>}
       </form>
     </div>
   );
@@ -661,6 +704,7 @@ function ChangePassword({ email, onDone }) {
 // Set a new password (shown after the user opens the reset link in their email)
 // ----------------------------------------------------------------------
 function ResetPassword({ onDone }) {
+  const { t } = useI18n();
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState(null);
@@ -669,8 +713,8 @@ function ResetPassword({ onDone }) {
   async function submit(e) {
     e.preventDefault();
     setError(null);
-    if (pw1.length < 6) { setError("የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር መሆን አለበት።"); return; }
-    if (pw1 !== pw2) { setError("ሁለቱ የይለፍ ቃሎች አይመሳሰሉም።"); return; }
+    if (pw1.length < 6) { setError(t("pwShort")); return; }
+    if (pw1 !== pw2) { setError(t("pwMismatch")); return; }
 
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw1 });
@@ -683,19 +727,20 @@ function ResetPassword({ onDone }) {
 
   return (
     <div className="loginwrap">
+      <LangSwitch />
       <form className="loginbox" onSubmit={submit} noValidate>
         <div className="login-mark" aria-hidden="true">🔑</div>
-        <h1>አዲስ የይለፍ ቃል</h1>
-        <p className="sub">አዲስ የይለፍ ቃልዎን ያስገቡ</p>
+        <h1>{t("newPwTitle")}</h1>
+        <p className="sub">{t("newPwSub")}</p>
 
-        <label htmlFor="newpw">አዲስ የይለፍ ቃል</label>
+        <label htmlFor="newpw">{t("newPw")}</label>
         <PasswordField id="newpw" autoComplete="new-password" autoFocus value={pw1} onChange={(e) => setPw1(e.target.value)} />
 
-        <label htmlFor="newpw2">የይለፍ ቃል ድገም</label>
+        <label htmlFor="newpw2">{t("repeatPw")}</label>
         <PasswordField id="newpw2" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
 
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "..." : "አስቀምጥ (Save)"}
+          {busy ? "..." : t("saveBtn")}
         </button>
 
         {error && <div className="err" role="alert" style={{ marginTop: 12 }}>{error}</div>}
@@ -1312,17 +1357,7 @@ export default function App() {
     return <ChangePassword email={session.user.email} onDone={() => setChangingPw(false)} />;
   }
 
-  if (userRole === "none") {
-    return (
-      <div className="loginwrap">
-        <div className="loginbox">
-          <h1>በረካ ህንፃ</h1>
-          <p className="sub">መለያዎ ገና ሚና አልተሰጠውም። እባክዎ አስተዳዳሪውን ያነጋግሩ።</p>
-          <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
-        </div>
-      </div>
-    );
-  }
+  if (userRole === "none") return <NoAccess />;
 
   if (userRole === "tenant") {
     return <TenantPortal tenants={tenants} loading={loading} onChangePw={() => setChangingPw(true)} />;
@@ -1347,7 +1382,7 @@ export default function App() {
           <div className="toolbtns">
             <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
             <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
-            <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>🔑 ቃል ቀይር</button>
+            <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>🔑 የይለፍ ቃል ይቀይሩ</button>
             {owner && <button className="btn btn-ghost" onClick={() => setSettingMfa(true)}>🔐 ባለ2 ደረጃ</button>}
             <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
           </div>
