@@ -20,12 +20,6 @@ export const MONTHS = [
   "ሚያዚያ", "ግንቦት", "ሰኔ", "ሀምሌ", "ነሀሴ", "ጳጉሜ",
 ];
 
-/** Same months in English letters, for the English interface. */
-export const MONTHS_EN = [
-  "Meskerem", "Tikimt", "Hidar", "Tahsas", "Tir", "Yekatit", "Megabit",
-  "Miazia", "Ginbot", "Sene", "Hamle", "Nehase", "Pagume",
-];
-
 const ALIASES = {
   "መስከረም": 1, "ጥቅምት": 2, "ህዳር": 3, "ሕዳር": 3, "ታህሳስ": 4, "ታኅሳስ": 4, "ጥር": 5,
   "የካቲት": 6, "መጋቢት": 7, "ሚያዚያ": 8, "ሚያዝያ": 8, "ግንቦት": 9, "ሰኔ": 10,
@@ -98,20 +92,15 @@ export function parseEth(text) {
   return { y, m, d };
 }
 
-export function fmtEth(dt, lang = "am") {
-  const names = lang === "en" ? MONTHS_EN : MONTHS;
-  return dt ? `${names[dt.m - 1]} ${String(dt.d).padStart(2, "0")}/${dt.y}` : "—";
+export function fmtEth(dt) {
+  return dt ? `${MONTHS[dt.m - 1]} ${String(dt.d).padStart(2, "0")}/${dt.y}` : "—";
 }
 
 /** Same {key,label,cls} shape the earlier versions used. */
-export function statusOf(payEnd, lang = "am") {
-  const en = lang === "en";
-  if (!payEnd) return { key: "unknown", label: en ? "Date not read" : "ቀን አልተነበበም", cls: "none", days: null };
+export function statusOf(payEnd) {
+  if (!payEnd) return { key: "unknown", label: "ቀን አልተነበበም", cls: "none", days: null };
   const days = daysBetween(todayEth(), payEnd);
-  if (days < 0) {
-    const n = Math.abs(days);
-    return { key: "late", label: en ? `Unpaid · ${n} days overdue` : `ያልተከፈለ · ${n} ቀን አለፈ`, cls: "late", days };
-  }
-  if (days <= 30) return { key: "soon", label: en ? `Ends in ${days} days` : `በ${days} ቀን ያልቃል`, cls: "warn", days };
-  return { key: "paid", label: en ? `Paid · ${days} days left` : `የተከፈለ · ${days} ቀን ቀሪ`, cls: "ok", days };
+  if (days < 0) return { key: "late", label: `ያልተከፈለ · ${Math.abs(days)} ቀን አለፈ`, cls: "late", days };
+  if (days <= 30) return { key: "soon", label: `በ${days} ቀን ያልቃል`, cls: "warn", days };
+  return { key: "paid", label: `የተከፈለ · ${days} ቀን ቀሪ`, cls: "ok", days };
 }

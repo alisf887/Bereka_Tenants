@@ -175,7 +175,7 @@ const STATUS_STYLES = {
 };
 
 // ----------------------------------------------------------------------
-// Password field with SVG show/hide icon
+// Password field with SVG show/hide icon (emoji icons often render blank on Windows)
 // ----------------------------------------------------------------------
 function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
   const { t } = useI18n();
@@ -220,6 +220,7 @@ function PasswordField({ id, value, onChange, autoComplete, autoFocus }) {
 
 // ----------------------------------------------------------------------
 // Tenant portal: a tenant sees ONLY their own record.
+// (The database also enforces this with Row Level Security.)
 // ----------------------------------------------------------------------
 function TenantCard({ t: tn }) {
   const { t, lang } = useI18n();
@@ -271,7 +272,7 @@ function TenantCard({ t: tn }) {
 }
 
 // ----------------------------------------------------------------------
-// Tenant payment + contact panel
+// Tenant payment + contact panel (bank accounts, Telegram with a prefilled message)
 // ----------------------------------------------------------------------
 const PLANE_PATH = "M21.9 3.6 2.7 11c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23 4.9c.3-1.3-.5-1.9-1.1-1.3zM8.5 13.3l9.9-6.2c.5-.3.9-.1.5.2l-8.1 7.3-.3 3.4-2-4.7z";
 
@@ -371,6 +372,7 @@ function PayPanel({ tenants }) {
 }
 
 function TenantPortal({ tenants, loading, onChangePw }) {
+  // One login can own several rooms (e.g. a company with 2 rooms): show every row linked to it.
   const { t, lang } = useI18n();
   return (
     <div className="wrap">
@@ -400,6 +402,7 @@ function TenantPortal({ tenants, loading, onChangePw }) {
   );
 }
 
+// Tenants without an email log in with their phone number (stored as <digits>@tenants.invalid)
 function toLoginEmail(input) {
   const v = String(input || "").toLowerCase().trim();
   if (v.includes("@")) return v;
@@ -410,7 +413,7 @@ function toLoginEmail(input) {
 }
 
 // ----------------------------------------------------------------------
-// Login Component
+// Login (Username & Password, Show/Hide, Forgot Password)
 // ----------------------------------------------------------------------
 function Login({ onDone }) {
   const { t } = useI18n();
@@ -498,7 +501,7 @@ function Login({ onDone }) {
 }
 
 // ----------------------------------------------------------------------
-// Two-factor authentication (TOTP)
+// Two-factor authentication (TOTP authenticator app) for the owner
 // ----------------------------------------------------------------------
 function MfaChallenge({ onDone }) {
   const [code, setCode] = useState("");
@@ -543,7 +546,7 @@ function MfaChallenge({ onDone }) {
 }
 
 function MfaSetup({ onDone }) {
-  const [state, setState] = useState("loading");
+  const [state, setState] = useState("loading"); // loading | enabled | enroll | done | error
   const [factorId, setFactorId] = useState(null);
   const [qr, setQr] = useState(null);
   const [secret, setSecret] = useState("");
@@ -556,6 +559,7 @@ function MfaSetup({ onDone }) {
       const { data, error: e1 } = await supabase.auth.mfa.listFactors();
       if (e1) { setError(errText(e1)); setState("error"); return; }
       if (data.totp.length > 0) { setFactorId(data.totp[0].id); setState("enabled"); return; }
+      // remove abandoned, never-verified factors before creating a new one
       for (const f of data.all.filter((x) => x.status === "unverified")) {
         await supabase.auth.mfa.unenroll({ factorId: f.id });
       }
@@ -603,7 +607,7 @@ function MfaSetup({ onDone }) {
             <img src={qr} alt="QR code" style={{ width: 200, height: 200, display: "block", margin: "0 auto 12px", background: "#fff" }} />
             <p className="sub" style={{ wordBreak: "break-all" }}>
               መቃኘት ካልተቻለ ይህን ቁልፍ በእጅ ያስገቡ፦ <b>{secret}</b><br />
-              ይህን ቁልፍ በጥንቃቄ ያስቀምጡ።
+              ይህን ቁልፍ በጥንቃቄ ያስቀምጡ (ስልክዎ ቢጠፋ ለማገገም ይረዳል)።
             </p>
             <label htmlFor="mfasetup">6 ዲጂት ኮድ</label>
             <input
@@ -637,7 +641,7 @@ function MfaSetup({ onDone }) {
 }
 
 // ----------------------------------------------------------------------
-// Change password
+// Change password (logged-in user; asks for the current password first)
 // ----------------------------------------------------------------------
 function ChangePassword({ email, onDone }) {
   const { t } = useI18n();
@@ -696,6 +700,9 @@ function ChangePassword({ email, onDone }) {
   );
 }
 
+// ----------------------------------------------------------------------
+// Set a new password (shown after the user opens the reset link in their email)
+// ----------------------------------------------------------------------
 function ResetPassword({ onDone }) {
   const { t } = useI18n();
   const [pw1, setPw1] = useState("");
@@ -797,7 +804,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     }
     const newEnd = addMonthsToContract(current, monthsToAdd);
     if (!newEnd) {
-      onFlash(`የውል ማብቂያ ቀን "${current}" ሊነበብ አልቻለም። ቅርጸቱ "ወር ቀን/ዓመት" መሆን አለበት።`, false);
+      onFlash(`የውል ማብቂያ ቀን "${current}" ሊነበብ አልቻለም። ቅርጸቱ "ወር ቀን/ዓመት" መሆን አለበት (ለምሳሌ፦ ታህሳስ 14/2019)።`, false);
       return;
     }
     setBusy(true);
@@ -809,6 +816,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     if (error) {
       onFlash(errText(error), false);
     } else {
+      // undoable=false: the toast "መልስ" button only undoes payments, never contracts
       onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል → ${newEnd}`, false);
       onSaved();
     }
@@ -861,7 +869,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       onFlash(errText(error), false);
       return;
     }
-    setForm((f) => ({ ...f, amt3: newAmt3, amt6: newAmt6 ?? "" }));
+    setForm((f) => ({ ...f, amt3: newAmt3, amt6: newAmt6 ?? "" })); // keep the edit form in sync
     setShowIncrease(false); setInc3(""); setInc6(""); setInc6Touched(false);
     onFlash(`ኪራይ ጨምሯል፦ ${money(t.amt3)} → ${money(newAmt3)}`, false);
     onSaved();
@@ -896,7 +904,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     if (error) {
       onFlash(errText(error), false);
     } else {
-      onFlash(`${t.name} ውል አቋርጦ ወጥቷል።`, false);
+      onFlash(`${t.name} ውል አቋርጦ ወጥቷል። (ክፍሉ ነጻ ሆኗል)`, false);
       onSaved();
       onClose();
     }
@@ -1169,12 +1177,11 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
 // Main App Component
 // ----------------------------------------------------------------------
 export default function App() {
-  const { t, lang } = useI18n();
   const [session, setSession] = useState(undefined);
   const [userRole, setUserRole] = useState(null);
   const [changingPw, setChangingPw] = useState(false);
   const [settingMfa, setSettingMfa] = useState(false);
-  const [aal, setAal] = useState(null);
+  const [aal, setAal] = useState(null); // { cur, next } assurance level (owner only)
   const [mfaTick, setMfaTick] = useState(0);
   const { tenants, loading, error, reload } = useTenants();
   const [filters, setFilters] = useState({ floor: "all", status: "all", viewMode: "active", q: "" });
@@ -1277,29 +1284,29 @@ export default function App() {
   const visible = useMemo(() => {
     const q = filters.q.toLowerCase();
     return inFloorScope.filter((t) => {
-      const s = statusOf(t.payEnd, lang);
+      const s = statusOf(t.payEnd);
       if (filters.status !== "all" && s.key !== filters.status) return false;
       if (q && !(`${t.name} ${t.room} ${t.phone}`).toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [inFloorScope, filters.status, filters.q, lang]);
+  }, [inFloorScope, filters.status, filters.q]);
 
   const stats = useMemo(() => {
     let late = 0, soon = 0, paid = 0, expected = 0;
     for (const t of inFloorScope) {
-      const k = statusOf(t.payEnd, lang).key;
+      const k = statusOf(t.payEnd).key;
       if (k === "late") late++; else if (k === "soon") soon++; else if (k === "paid") paid++;
       expected += t.amt3 ?? t.amt6 ?? 0;
     }
     return { count: inFloorScope.length, late, soon, paid, expected };
-  }, [inFloorScope, lang]);
+  }, [inFloorScope]);
 
   function exportCsv() {
-    const head = [t("thNo"), t("thName"), t("thRoom"), t("thFloor"), t("thPhone"), t("thContractEnd"), t("thPayEnd"), t("thStatus"), t("amt3"), t("amt6")];
+    const head = ["ተ.ቁ", "ስም", "ክፍል", "ወለል", "ስልክ", "ውል የሚያበቃበት", "ክፍያ የሚያበቃበት", "ሁኔታ", "ክፍያ 3 ወር", "ክፍያ 6 ወር"];
     const lines = [head.join(",")].concat(
       visible.map((t, i) => {
-        const s = statusOf(t.payEnd, lang);
-        return [i + 1, t.name, t.room, t.floor, t.phone, t.contractEnd, fmtEth(t.payEnd, lang), s.label, t.amt3 || "", t.amt6 || ""]
+        const s = statusOf(t.payEnd);
+        return [i + 1, t.name, t.room, t.floor, t.phone, t.contractEnd, fmtEth(t.payEnd), s.label, t.amt3 || "", t.amt6 || ""]
           .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
       })
     );
@@ -1334,10 +1341,10 @@ export default function App() {
     return <ResetPassword onDone={() => setRecovery(false)} />;
   }
 
-  if (userRole === null) return null;
+  if (userRole === null) return null; // role still loading
 
   if (userRole === "owner") {
-    if (aal === null) return null;
+    if (aal === null) return null; // checking two-factor status
     if (aal.next === "aal2" && aal.cur !== "aal2") {
       return <MfaChallenge onDone={() => setMfaTick((t) => t + 1)} />;
     }
@@ -1361,35 +1368,34 @@ export default function App() {
       <div className="wrap">
         <header className="top" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 16, marginBottom: 20 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: "1.5rem" }}>🏢</span>
-              <h1>{t("app")} — {t("tenantRegistry")}</h1>
-              <LangSwitch />
+              <h1>በረካ ህንፃ — የተከራዮች መዝገብ</h1>
             </div>
             <div className="sub" style={{ marginTop: 4 }}>
-              {t("today")} <b>{fmtEth(today, lang)} {t("era")}</b>
+              ዛሬ <b>{fmtEth(today)} ዓ.ም</b> · አጠቃላይ የህንፃ ንብረት እና ተከራዮች አስተዳደር።
               <span className={`pill ${owner ? "ok" : "none"}`} style={{ marginInlineStart: 6 }}>
-                {owner ? t("ownerMode") : t("viewerMode")}
+                {owner ? "የባለቤት ሁነታ (Owner)" : "የተመልካች ሁነታ (Viewer)"}
               </span>
             </div>
           </div>
           <div className="toolbtns">
-            <button className="btn" onClick={exportCsv}>{t("downloadCsv")}</button>
-            <button className="btn btn-ghost" onClick={() => setTheme((tMode) => (tMode === "dark" ? "light" : "dark"))}>{t("themeToggle")}</button>
-            <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>{t("changePw")}</button>
-            {owner && <button className="btn btn-ghost" onClick={() => setSettingMfa(true)}>{t("mfaToggle")}</button>}
-            <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>{t("logout")}</button>
+            <button className="btn" onClick={exportCsv}>📥 CSV አውርድ</button>
+            <button className="btn btn-ghost" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>🌓 ገጽታ</button>
+            <button className="btn btn-ghost" onClick={() => setChangingPw(true)}>🔑 የይለፍ ቃል ይቀይሩ</button>
+            {owner && <button className="btn btn-ghost" onClick={() => setSettingMfa(true)}>🔐 ባለ2 ደረጃ</button>}
+            <button className="btn btn-logout" onClick={() => supabase.auth.signOut()}>ውጣ</button>
           </div>
         </header>
 
         {error && <div className="err" role="alert">መረጃ መጫን አልተቻለም፦ {errText(error)}</div>}
 
         <section className="stats">
-          <div className="stat"><b>{stats.count}</b><span>{filters.viewMode === "archive" ? t("archiveTenants") : t("activeTenants")}</span></div>
-          <div className="stat"><b>{stats.late}</b><span>{t("lateStatus")}</span></div>
-          <div className="stat"><b>{stats.soon}</b><span>{t("soonStatus")}</span></div>
-          <div className="stat"><b>{stats.paid}</b><span>{t("paidStatus")}</span></div>
-          <div className="stat accent"><b>{money(stats.expected, lang)}</b><span>{t("amt3")}</span></div>
+          <div className="stat"><b>{stats.count}</b><span>{filters.viewMode === "archive" ? "የቀድሞ ተከራዮች" : "ንቁ ተከራዮች"}</span></div>
+          <div className="stat"><b>{stats.late}</b><span>ያልተከፈለ</span></div>
+          <div className="stat"><b>{stats.soon}</b><span>በ30 ቀን ውስጥ ያልቃል</span></div>
+          <div className="stat"><b>{stats.paid}</b><span>የተከፈለ</span></div>
+          <div className="stat accent"><b>{money(stats.expected)}</b><span>በአንድ ዙር የሚጠበቅ</span></div>
         </section>
 
         <div className="filterbar">
@@ -1398,19 +1404,19 @@ export default function App() {
               <button type="button" className="chip" style={{ "--c": "#1F3864" }}
                 aria-pressed={filters.viewMode === "active"}
                 onClick={() => setFilters((s) => ({ ...s, viewMode: "active" }))}>
-                {t("activeTenants")}
+                ንቁ ተከራዮች (Active)
               </button>
               <button type="button" className="chip" style={{ "--c": "#8A5A2B" }}
                 aria-pressed={filters.viewMode === "archive"}
                 onClick={() => setFilters((s) => ({ ...s, viewMode: "archive" }))}>
-                {t("archiveTenants")}
+                የቀድሞ ተከራዮች (Archive / Moved Out)
               </button>
             </div>
 
             {owner && filters.viewMode === "active" && (
               <button type="button" className="btn btn-primary btn-add" onClick={() => setDrawer({ mode: "add" })}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                {t("addTenantBtn")}
+                አዲስ ተከራይ ጨምር
               </button>
             )}
           </div>
@@ -1421,14 +1427,14 @@ export default function App() {
                 <button key={f} type="button" className="chip" style={floorStyle(f)}
                   aria-pressed={filters.floor === f}
                   onClick={() => setFilters((s) => ({ ...s, floor: f }))}>
-                  {f === "all" ? t("allFloors") : f}
+                  {f === "all" ? "ሁሉም ወለል" : f}
                 </button>
               ))}
             </div>
 
             {filters.viewMode === "active" && (
               <div className="chips" role="group" aria-label="ሁኔታ">
-                {[["all", t("allStatus")], ["late", t("lateStatus")], ["soon", t("soonStatus")], ["paid", t("paidStatus")]].map(([k, label]) => (
+                {[["all", "ሁሉም ሁኔታ"], ["late", "ያልተከፈለ"], ["soon", "ሊያልቅ የቀረበ"], ["paid", "የተከፈለ"]].map(([k, label]) => (
                   <button key={k} type="button" className="chip" style={{ "--c": STATUS_STYLES[k] }}
                     aria-pressed={filters.status === k}
                     onClick={() => setFilters((s) => ({ ...s, status: k }))}>
@@ -1441,7 +1447,7 @@ export default function App() {
             <div className="searchbox">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
               <input className="search" type="search" aria-label="ፈልግ"
-                placeholder={t("searchPlaceholder")}
+                placeholder="በስም፣ በክፍል ቁጥር ወይም በስልክ ፈልግ..."
                 value={filters.q} onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))} />
             </div>
           </div>
@@ -1451,42 +1457,42 @@ export default function App() {
           <table>
             <thead>
               <tr>
-                <th scope="col">{t("thNo")}</th>
-                <th scope="col">{t("thName")}</th>
-                <th scope="col">{t("thRoom")}</th>
-                <th scope="col">{t("thFloor")}</th>
-                <th scope="col">{t("thPhone")}</th>
-                <th scope="col">{t("thPayEnd")}</th>
-                <th scope="col">{t("thStatus")}</th>
-                <th scope="col">{t("thContractEnd")}</th>
-                {owner && filters.viewMode === "active" && <th scope="col" style={{ textAlign: "left" }}>{t("thRecordPay")}</th>}
+                <th scope="col">ተ.ቁ</th>
+                <th scope="col">ስም</th>
+                <th scope="col">ክፍል / ሱቅ</th>
+                <th scope="col">ወለል</th>
+                <th scope="col">ስልክ</th>
+                <th scope="col">ክፍያ የሚያበቃበት ቀን</th>
+                <th scope="col">ሁኔታ</th>
+                <th scope="col">ውል የሚያበቃበት</th>
+                {owner && filters.viewMode === "active" && <th scope="col" style={{ textAlign: "left" }}>ክፍያ መዝግብ</th>}
               </tr>
             </thead>
             <tbody>
-              {visible.map((item, i) => {
-                const s = statusOf(item.payEnd, lang);
+              {visible.map((t, i) => {
+                const s = statusOf(t.payEnd);
                 return (
-                  <tr className="row" key={item.id}>
-                    <td data-label={t("thNo")}>{i + 1}</td>
-                    <td className="name" data-label={t("thName")}>
-                      <button className="link" onClick={() => setDrawer({ mode: "view", tenantId: item.id })}>{item.name}</button>
-                      {item.status === "moved_out" && <span style={{ fontSize: "0.75rem", color: "var(--late)", marginLeft: 6 }}>(ወጥቷል)</span>}
+                  <tr className="row" key={t.id}>
+                    <td data-label="ተ.ቁ">{i + 1}</td>
+                    <td className="name" data-label="ስም">
+                      <button className="link" onClick={() => setDrawer({ mode: "view", tenantId: t.id })}>{t.name}</button>
+                      {t.status === "moved_out" && <span style={{ fontSize: "0.75rem", color: "var(--late)", marginLeft: 6 }}>(ወጥቷል)</span>}
                     </td>
-                    <td data-label={t("thRoom")}>{item.room || "—"}</td>
-                    <td data-label={t("thFloor")}>{item.floor}</td>
-                    <td className="money" data-label={t("thPhone")}>
-                      {item.phone ? <a className="link" href={`tel:0${item.phone}`}>0{item.phone}</a> : "—"}
+                    <td data-label="ክፍል">{t.room || "—"}</td>
+                    <td data-label="ወለል">{t.floor}</td>
+                    <td className="money" data-label="ስልክ">
+                      {t.phone ? <a className="link" href={`tel:0${t.phone}`}>0{t.phone}</a> : "—"}
                     </td>
-                    <td data-label={t("thPayEnd")}>{fmtEth(item.payEnd, lang)}</td>
-                    <td data-label={t("thStatus")}>
+                    <td data-label="ክፍያ የሚያበቃበት">{fmtEth(t.payEnd)}</td>
+                    <td data-label="ሁኔታ">
                       <span className={`pill ${s.cls}`}>{s.label}</span>
                     </td>
-                    <td data-label={t("thContractEnd")}>{fmtDateText(item.contractEnd, lang)}</td>
+                    <td data-label="ውል የሚያበቃበት">{t.contractEnd || "—"}</td>
                     {owner && filters.viewMode === "active" && (
                       <td>
                         <div className="pay">
-                          <PayButton tenant={item} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
-                          <PayButton tenant={item} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
+                          <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
+                          <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
                         </div>
                       </td>
                     )}
@@ -1500,7 +1506,7 @@ export default function App() {
           )}
         </div>
 
-        <footer>{t("footerText")}</footer>
+        <footer>ቀኖች በኢትዮጵያ ዘመን አቆጣጠር ናቸው። ወር = 30 ቀን ሆኖ ይሰላል።</footer>
       </div>
 
       {drawer && (
@@ -1538,7 +1544,6 @@ export default function App() {
 }
 
 function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
-  const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const amt = cycle === 3 ? tenant.amt3 : tenant.amt6;
   async function click() {
@@ -1547,14 +1552,14 @@ function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
     setBusy(false);
     if (error) onFlash(errText(error), false);
     else {
-      onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d }, lang)}`, true, tenant.id);
+      onFlash(`${tenant.name} · ${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, tenant.id);
       onSaved();
       onPaid(tenant);
     }
   }
   return (
-    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt, lang) : "መጠን አልተመዘገበም"}>
-      {cycle} {lang === "en" ? "mo. paid" : "ወር ተከፈለ"}
+    <button className="paybtn" disabled={busy} onClick={click} title={amt != null ? money(amt) : "መጠን አልተመዘገበም"}>
+      {cycle} ወር ተከፈለ
     </button>
   );
 }
