@@ -13,8 +13,8 @@ function money(n) {
 // ----------------------------------------------------------------------
 const TELEGRAM = "iyad06";
 const BANKS = [
-  // { bank: "Commercial Bank of Ethiopia", number: "1000 0000 0000 0", holder: "Account holder name" },
-  // { bank: "Buna International Bank",     number: "1929 0000 0000 0", holder: "Account holder name" },
+  { bank: "Commercial Bank of Ethiopia", short: "CBE", number: "1000 5104 0284 8", holder: "Murad Kedir" },
+  { bank: "Buna International Bank",     short: "BIB", number: "1929 6010 0005 1", holder: "Murad Kedir" },
 ];
 
 const ROLES = ["owner", "viewer", "tenant"];
@@ -264,25 +264,50 @@ function PayPanel({ tenants }) {
 
   return (
     <section className="paypanel" aria-labelledby="paytitle">
-      <h2 id="paytitle">💳 ክፍያ እና ጥያቄ</h2>
+      <div className="pay-hero">
+        <span className="pay-eyebrow">በባንክ ማስተላለፍ ክፍያ · PAYMENT BY BANK TRANSFER</span>
+        <h2 id="paytitle">ክፍያ እና ጥያቄ</h2>
+        {BANKS.length > 0 && <p>የኪራይ ክፍያዎን ከታች ከተዘረዘሩት ሂሳቦች በአንዱ ይላኩ።</p>}
+      </div>
+
+      {BANKS.map((b, i) => (
+        <article key={i} className={`bankcard bank-${i % 2}`}>
+          <div className="bank-head">
+            <span className="bank-mono" aria-hidden="true">{b.short || b.bank.slice(0, 3).toUpperCase()}</span>
+            <div>
+              <small>ባንክ</small>
+              <b className="bank-name">{b.bank}</b>
+            </div>
+            <span className="bank-chip">ሂሳብ {i + 1}</span>
+          </div>
+
+          <div className="bank-label">የሂሳብ ቁጥር</div>
+          <div className="bank-num"><code>{b.number}</code></div>
+
+          <div className="bank-foot">
+            <div>
+              {b.holder && (<><small>የሂሳቡ ባለቤት</small><b>{b.holder}</b></>)}
+            </div>
+            <button type="button" className={`copybtn${copied === i ? " done" : ""}`} onClick={() => copy(b.number, i)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {copied === i
+                  ? <path d="M20 6 9 17l-5-5" />
+                  : <><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>}
+              </svg>
+              {copied === i ? "ተቀድቷል" : "ቅዳ"}
+            </button>
+          </div>
+        </article>
+      ))}
 
       {BANKS.length > 0 && (
         <>
-          <p className="muted small">የኪራይ ክፍያዎን ከታች ከተዘረዘሩት የባንክ ሂሳቦች በአንዱ ይላኩ።</p>
-          {BANKS.map((b, i) => (
-            <div key={i} className={`bankcard bank-${i % 2}`}>
-              <div className="bank-top"><span>ባንክ</span><em>ሂሳብ {i + 1}</em></div>
-              <b className="bank-name">{b.bank}</b>
-              <small>የሂሳብ ቁጥር</small>
-              <div className="bank-num">
-                <code>{b.number}</code>
-                <button type="button" className="btn btn-ghost" onClick={() => copy(b.number, i)}>
-                  {copied === i ? "ተቀድቷል ✓" : "ቅዳ"}
-                </button>
-              </div>
-              {b.holder && <small>የሂሳቡ ባለቤት፦ {b.holder}</small>}
-            </div>
-          ))}
+          <div className="pay-ok">
+            <span className="pay-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+            </span>
+            <span><b>ክፍያውን ከላኩ በኋላ</b> የደረሰኙን ወይም የ SMS ማረጋገጫውን በ Telegram ያሳዩን።</span>
+          </div>
           <ol className="paysteps">
             <li>ክፍያውን በባንክ ይላኩ።</li>
             <li>የደረሰኙን ወይም የ SMS ማረጋገጫውን ፎቶ (screenshot) ያንሱ።</li>
@@ -293,9 +318,13 @@ function PayPanel({ tenants }) {
 
       <a className="tgbtn" href={link} target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={PLANE_PATH} /></svg>
-        <span>ደረሰኝ ይላኩ / ጥያቄ ይጠይቁ (Telegram)</span>
+        <span>የክፍያ ደረሰኝ ይላኩ ወይም ጥያቄ ካለዎት ይጠይቁ</span>
       </a>
       <p className="muted small paynote">ትክክለኛው የ Telegram አድራሻ፦ <b>@{TELEGRAM}</b></p>
+      <p className="muted small paynote">
+        አልተከፈተም? <a href={`https://web.telegram.org/k/#@${TELEGRAM}`} target="_blank" rel="noopener noreferrer">በድር ላይ በ Telegram ይክፈቱ</a>
+      </p>
+      <p className="paythanks">እናመሰግናለን!</p>
     </section>
   );
 }
