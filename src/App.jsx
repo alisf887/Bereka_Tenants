@@ -17,6 +17,12 @@ function fmtDateText(txt, lang) {
   return d ? fmtEth(d, "en") : txt;
 }
 
+// A tenant who has moved out never counts days: always show 0 (gray), never "late".
+function rentStatus(tn) {
+  if (tn.status === "moved_out") return { key: "moved", label: "0 ቀን አለፈ", cls: "none", days: 0 };
+  return statusOf(tn.payEnd);
+}
+
 // Amharic / English switch
 function LangSwitch() {
   const { lang } = useI18n();
@@ -775,6 +781,30 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   
   useEffect(() => { firstFieldRef.current?.focus(); }, []);
 
+  // Private staff note about this tenant (separate table: tenants can never read it)
+  const [note, setNote] = useState("");
+  const [noteBusy, setNoteBusy] = useState(false);
+  const [noteMsg, setNoteMsg] = useState("");
+  useEffect(() => {
+    if (isAdd || !t?.id) return;
+    let alive = true;
+    supabase.from("tenant_notes").select("note").eq("tenant_id", t.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) { setNoteMsg("ማስታወሻ ገና አልተዘጋጀም (SQL ያስኬዱ)።"); return; }
+        setNote(data?.note ?? "");
+      });
+    return () => { alive = false; };
+  }, [isAdd, t?.id]);
+
+  async function saveNote() {
+    setNoteBusy(true); setNoteMsg("");
+    const { error } = await supabase.from("tenant_notes")
+      .upsert({ tenant_id: t.id, note: note.trim(), updated_at: new Date().toISOString() }, { onConflict: "tenant_id" });
+    setNoteBusy(false);
+    setNoteMsg(error ? errText(error) : "ተቀምጧል ✓");
+  }
+
   function set(key, value) { setForm((f) => ({ ...f, [key]: value })); }
 
   async function saveInfo() {
@@ -1009,7 +1039,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     );
   }
 
-  const s = statusOf(t.payEnd);
+  const s = rentStatus(t);
   return (
     <>
       <h2>{t.name}</h2>
@@ -1018,6 +1048,22 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
         <span className={`pill ${s.cls}`}>{s.label}</span>
         {t.status === "moved_out" && <span className="pill" style={{ background: "#fee2e2", color: "#991b1b", marginLeft: 6 }}>ወጥቷል (Moved Out)</span>}
       </p>
+
+      <div className="notebox">
+        <label htmlFor="edNote">📝 ማስታወሻ <small>(ለአስተዳደር ብቻ — ተከራዩ አያየውም)</small></label>
+        {owner ? (
+          <>
+            <textarea id="edNote" maxLength={2000} value={note} onChange={(e) => { setNote(e.target.value); setNoteMsg(""); }}
+              placeholder="ስለዚህ ተከራይ ማስታወሻ ይጻፉ..." />
+            <div className="note-actions">
+              <button className="btn btn-save" disabled={noteBusy} onClick={saveNote}>ማስታወሻ አስቀምጥ</button>
+              {noteMsg && <small role="status">{noteMsg}</small>}
+            </div>
+          </>
+        ) : (
+          <div className="note-read">{note || "ማስታወሻ የለም።"}</div>
+        )}
+      </div>
 
       {owner ? (
         <>
@@ -1284,7 +1330,7 @@ export default function App() {
   const visible = useMemo(() => {
     const q = filters.q.toLowerCase();
     return inFloorScope.filter((t) => {
-      const s = statusOf(t.payEnd);
+      const s = rentStatus(t);
       if (filters.status !== "all" && s.key !== filters.status) return false;
       if (q && !(`${t.name} ${t.room} ${t.phone}`).toLowerCase().includes(q)) return false;
       return true;
@@ -1294,7 +1340,7 @@ export default function App() {
   const stats = useMemo(() => {
     let late = 0, soon = 0, paid = 0, expected = 0;
     for (const t of inFloorScope) {
-      const k = statusOf(t.payEnd).key;
+      const k = rentStatus(t).key;
       if (k === "late") late++; else if (k === "soon") soon++; else if (k === "paid") paid++;
       expected += t.amt3 ?? t.amt6 ?? 0;
     }
@@ -1305,7 +1351,7 @@ export default function App() {
     const head = ["ተ.ቁ", "ስም", "ክፍል", "ወለል", "ስልክ", "ውል የሚያበቃበት", "ክፍያ የሚያበቃበት", "ሁኔታ", "ክፍያ 3 ወር", "ክፍያ 6 ወር"];
     const lines = [head.join(",")].concat(
       visible.map((t, i) => {
-        const s = statusOf(t.payEnd);
+        const s = rentStatus(t);
         return [i + 1, t.name, t.room, t.floor, t.phone, t.contractEnd, fmtEth(t.payEnd), s.label, t.amt3 || "", t.amt6 || ""]
           .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
       })
@@ -1470,7 +1516,7 @@ export default function App() {
             </thead>
             <tbody>
               {visible.map((t, i) => {
-                const s = statusOf(t.payEnd);
+                const s = rentStatus(t);
                 return (
                   <tr className="row" key={t.id}>
                     <td data-label="ተ.ቁ">{i + 1}</td>

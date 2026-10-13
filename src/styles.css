@@ -642,3 +642,12 @@ button.tab:nth-child(11) {
 .langsw button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 .loginwrap{position:relative}
 .loginwrap > .langsw{position:absolute;top:16px;right:16px}
+
+/* ===== Private staff note in the tenant drawer ===== */
+.notebox{margin:14px 0 18px;padding:12px 14px;background:var(--panel-2);border:1px solid var(--line);border-left:4px solid #B8903A;border-radius:var(--radius)}
+.notebox label{display:block;font-weight:600;font-size:13.5px;margin-bottom:6px}
+.notebox label small{font-weight:400;color:var(--ink-soft)}
+.notebox textarea{width:100%;min-height:96px;resize:vertical;padding:10px 12px;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.notebox .note-actions{display:flex;align-items:center;gap:10px;margin-top:8px}
+.notebox .note-actions small{color:var(--ink-soft)}
+.notebox .note-read{white-space:pre-wrap;font-size:14.5px}
