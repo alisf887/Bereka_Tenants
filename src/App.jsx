@@ -1050,7 +1050,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       </p>
 
       <div className="notebox">
-        <label htmlFor="edNote">📝 ማስታወሻ <small>(ለአስተዳደር ብቻ — ተከራዩ አያየውም)</small></label>
+        <label htmlFor="edNote">📝 ማስታወሻ</label>
         {owner ? (
           <>
             <textarea id="edNote" maxLength={2000} value={note} onChange={(e) => { setNote(e.target.value); setNoteMsg(""); }}
