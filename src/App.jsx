@@ -53,8 +53,8 @@ function NoAccess() {
 // ----------------------------------------------------------------------
 const TELEGRAM = "iyad06";
 const BANKS = [
-  { bank: "Commercial Bank of Ethiopia", short: "CBE", number: "1000 5104 0284 8", holder: "Murad Kedir" },
-  { bank: "Buna International Bank",     short: "BIB", number: "1929 6010 0005 1", holder: "Murad Kedir" },
+  { bank: "Commercial Bank of Ethiopia", short: "CBE", number: "1000 5104 0284 8", holder: "Murad Kedir Murad Kedir Rent Fix.p" },
+  { bank: "Buna International Bank",     short: "BIB", number: "1929 6010 0005 1", holder: "Murad Kedir Awash" },
 ];
 
 const ROLES = ["owner", "viewer", "tenant"];
