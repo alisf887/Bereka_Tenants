@@ -1,37 +1,14 @@
 import './styles.css'; 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { MONTHS, fmtEth, statusOf, todayEth, parseEth } from "./ethiopianCalendar";
+import { MONTHS, addMonths, fmtEth, statusOf, todayEth, parseEth } from "./ethiopianCalendar";
 import { useI18n, setLang, getLang, translate } from "./i18n";
 import ReceiptModal from "./pdf/ReceiptModal";
 
 function money(n, lang = "am") {
   return n == null ? "—" : Number(n).toLocaleString("en-US") + (lang === "en" ? " ETB" : " ብር");
 }
-
-/* Safety check before a payment is recorded: the cycle must have a price,
-   and the owner must confirm name, amount and the new period. */
-function confirmPayment(t, cycle, onFlash) {
-  const lang = getLang();
-  const amt = cycle === 3 ? t.amt3 : t.amt6;
-  if (amt == null || Number(amt) <= 0) {
-    onFlash(lang === "en"
-      ? `No amount is saved for ${cycle} months. Enter and save the amount first.`
-      : `ለ${cycle} ወር የክፍያ መጠን አልተመዘገበም። መጀመሪያ መጠኑን ያስገቡና ያስቀምጡ።`, false);
-    return false;
-  }
-  let period = "";
-  if (t.payEnd) {
-    let m = t.payEnd.m + cycle, y = t.payEnd.y;
-    while (m > 12) { m -= 12; y += 1; }
-    period = `${fmtEth(t.payEnd)} → ${fmtEth({ y, m, d: t.payEnd.d })}`;
-  }
-  return window.confirm(
-    `${t.name}\n${cycle} ${lang === "en" ? "months" : "ወር"} · ${money(amt, lang)}\n${period}\n\n` +
-    (lang === "en" ? "Record this payment?" : "ክፍያው ይመዝገብ?")
-  );
-}
-
+function confirmPayment(t, cycle, onFlash) { const amt = cycle === 3 ? t.amt3 : t.amt6; if (amt == null || Number(amt) <= 0) { onFlash(`ለ${cycle} ወር የክፍያ መጠን አልተመዘገበም። መጀመሪያ መጠኑን ያስገቡና ያስቀምጡ።`, false); return false; } const period = t.payEnd ? `${fmtEth(t.payEnd)} → ${fmtEth(addMonths(t.payEnd, cycle))}` : ""; return window.confirm(`${t.name}\n${cycle} ወር · ${money(amt)}\n${period}\n\nክፍያው ይመዝገብ?`); }
 // Contract dates are stored as Amharic text (e.g. "ጥቅምት 20/2019"); show English months in the English interface.
 function fmtDateText(txt, lang) {
   if (!txt) return "—";
@@ -871,8 +848,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
     } else {
       // undoable=false: the toast "መልስ" button only undoes payments, never contracts
       onFlash(`ውሉ በ${monthsToAdd === 12 ? "1 ዓመት" : "6 ወር"} ተራዝሟል → ${newEnd}`, false);
-      setForm((f) => ({ ...f, contractEnd: newEnd })); // keep the edit box in sync
-      onSaved();
+      setForm((f) => ({ ...f, contractEnd: newEnd })); onSaved();
     }
   }
 
@@ -889,8 +865,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
       onFlash(errText(error), false);
     } else {
       onFlash("ውሉ ወደ ነበረበት ተመልሷል።", false);
-      setForm((f) => ({ ...f, contractEnd: t.prevContractEnd }));
-      onSaved();
+      setForm((f) => ({ ...f, contractEnd: t.prevContractEnd })); onSaved();
     }
   }
 
@@ -978,29 +953,23 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
   }
 
   async function recordPayment(cycle) {
-    if (!confirmPayment(t, cycle, onFlash)) return;
-    setBusy(true);
+    if (!confirmPayment(t, cycle, onFlash)) return; setBusy(true);
     const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: t.id, p_cycle: cycle });
     setBusy(false);
     if (error) onFlash(errText(error), false);
     else {
       onFlash(`${cycle} ወር ተመዝግቧል። አዲስ ማብቂያ ${fmtEth({ y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })}`, true, t.id);
-      setForm((f) => ({ ...f, y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })); // keep date boxes in sync
-      onSaved();
+      setForm((f) => ({ ...f, y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d })); onSaved();
       onPaid(t);
     }
   }
 
   async function revertLast() {
     setBusy(true);
-    const { data, error } = await supabase.rpc("revert_last_payment", { p_tenant_id: t.id });
+    const { error } = await supabase.rpc("revert_last_payment", { p_tenant_id: t.id });
     setBusy(false);
     if (error) onFlash(errText(error), false);
-    else {
-      onFlash("የመጨረሻው ክፍያ ተሰርዟል።", false);
-      if (data) setForm((f) => ({ ...f, y: data.pay_end_y, m: data.pay_end_m, d: data.pay_end_d }));
-      onSaved();
-    }
+    else { onFlash("የመጨረሻው ክፍያ ተሰርዟል።", false); onSaved(); }
   }
 
   async function createTenant() {
@@ -1131,8 +1100,7 @@ function Drawer({ tenant, mode, owner, floors, defaultFloor, onClose, onSaved, o
           <div className="pay drawer-actions" style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8 }}>
               {t.amt3 != null && <button className="paybtn" disabled={busy} onClick={() => recordPayment(3)}>3 ወር ተከፈለ</button>}
-              {t.amt6 != null && <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>}
-              {t.amt3 == null && t.amt6 == null && <span className="sub">የክፍያ መጠን አልተመዘገበም</span>}
+              {t.amt6 != null && <button className="paybtn" disabled={busy} onClick={() => recordPayment(6)}>6 ወር ተከፈለ</button>}{t.amt3 == null && t.amt6 == null && <span className="sub">የክፍያ መጠን አልተመዘገበም</span>}
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
@@ -1570,8 +1538,7 @@ export default function App() {
                       <td>
                         <div className="pay">
                           <PayButton tenant={t} cycle={3} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
-                          <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />
-                          {t.amt3 == null && t.amt6 == null && <span className="sub">መጠን አልተመዘገበም</span>}
+                          <PayButton tenant={t} cycle={6} onFlash={flash} onSaved={reload} onPaid={openReceipt} />{t.amt3 == null && t.amt6 == null && <span className="sub">መጠን አልተመዘገበም</span>}
                         </div>
                       </td>
                     )}
@@ -1624,11 +1591,9 @@ export default function App() {
 
 function PayButton({ tenant, cycle, onFlash, onSaved, onPaid }) {
   const [busy, setBusy] = useState(false);
-  const amt = cycle === 3 ? tenant.amt3 : tenant.amt6;
-  if (amt == null) return null; // no price for this cycle: no button
+  const amt = cycle === 3 ? tenant.amt3 : tenant.amt6; if (amt == null) return null;
   async function click() {
-    if (!confirmPayment(tenant, cycle, onFlash)) return;
-    setBusy(true);
+    if (!confirmPayment(tenant, cycle, onFlash)) return; setBusy(true);
     const { data, error } = await supabase.rpc("record_payment", { p_tenant_id: tenant.id, p_cycle: cycle });
     setBusy(false);
     if (error) onFlash(errText(error), false);

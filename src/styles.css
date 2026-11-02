@@ -47,7 +47,7 @@ html,body{margin:0;padding:0;height:100%}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
   background:var(--bg); color:var(--ink);
-  font-family:"Noto Sans Ethiopic","Inter",system-ui,-apple-system,Segoe UI,"Noto Color Emoji",sans-serif;
+  font-family:"Noto Sans Ethiopic","Inter",system-ui,-apple-system,Segoe UI,sans-serif;
   font-size:16.5px; line-height:1.5; font-feature-settings:"tnum" 1;
   -webkit-font-smoothing: antialiased;
 }
